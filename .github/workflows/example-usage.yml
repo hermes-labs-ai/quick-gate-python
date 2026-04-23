@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0  # Required for changed file detection
 
-      - uses: roli-lpci/quick-gate-python/.github/actions/pygate@main
+      - uses: hermes-labs-ai/quick-gate-python/.github/actions/pygate@main
         with:
           mode: canary          # or "full" to include tests
           repair: "true"        # attempt auto-repair on failures

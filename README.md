@@ -35,9 +35,9 @@ Do not use PyGate as a generic lint aggregator, a semantic code fixer, or a repl
 
 ![pygate preview](assets/preview.png)
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/roli-lpci/quick-gate-python/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/hermes-labs-ai/quick-gate-python/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://python.org)
-[![CI](https://github.com/roli-lpci/quick-gate-python/actions/workflows/ci.yml/badge.svg)](https://github.com/roli-lpci/quick-gate-python/actions/workflows/ci.yml)
+[![CI](https://github.com/hermes-labs-ai/quick-gate-python/actions/workflows/ci.yml/badge.svg)](https://github.com/hermes-labs-ai/quick-gate-python/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/pygate-ci)](https://pypi.org/project/pygate-ci/)
 
 **PyPI package:** `pygate-ci`  
@@ -135,7 +135,7 @@ All artifacts are written to `.pygate/`:
 | `repair-report.json` | Repair attempt history (on success) |
 | `escalation.json` | Escalation reason and evidence (on failure) |
 
-JSON Schema files for all artifact types are available in [`schemas/`](https://github.com/roli-lpci/quick-gate-python/tree/main/schemas) for downstream validation and code generation. See [`demo/artifacts/`](https://github.com/roli-lpci/quick-gate-python/tree/main/demo/artifacts) for sample output.
+JSON Schema files for all artifact types are available in [`schemas/`](https://github.com/hermes-labs-ai/quick-gate-python/tree/main/schemas) for downstream validation and code generation. See [`demo/artifacts/`](https://github.com/hermes-labs-ai/quick-gate-python/tree/main/demo/artifacts) for sample output.
 
 ## Repair Loop
 
@@ -207,7 +207,7 @@ PyGate ships with a composite GitHub Action for CI integration:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: roli-lpci/quick-gate-python/.github/actions/pygate@main
+- uses: hermes-labs-ai/quick-gate-python/.github/actions/pygate@main
   with:
     mode: canary          # or "full"
     repair: "true"        # attempt auto-repair on failures
@@ -235,8 +235,40 @@ The action detects changed files from the PR, runs gates, optionally repairs, an
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/roli-lpci/quick-gate-python/blob/main/CONTRIBUTING.md) for development setup and guidelines.
+See [CONTRIBUTING.md](https://github.com/hermes-labs-ai/quick-gate-python/blob/main/CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
-[Apache 2.0](https://github.com/roli-lpci/quick-gate-python/blob/main/LICENSE)
+[Apache 2.0](https://github.com/hermes-labs-ai/quick-gate-python/blob/main/LICENSE)
+
+---
+
+## About Hermes Labs
+
+[Hermes Labs](https://hermes-labs.ai) builds AI audit infrastructure for enterprise AI systems — EU AI Act readiness, ISO 42001 evidence bundles, continuous compliance monitoring, agent-level risk testing. We work with teams shipping AI into regulated environments.
+
+**Our OSS philosophy — read this if you're deciding whether to depend on us:**
+
+- **Everything we release is free, forever.** MIT or Apache-2.0. No "open core," no SaaS tier upsell, no paid version with the features you actually need. You can run this repo commercially, without talking to us.
+- **We open-source our own infrastructure.** The tools we release are what Hermes Labs uses internally — we don't publish demo code, we publish production code.
+- **We sell audit work, not licenses.** If you want an ANNEX-IV pack, an ISO 42001 evidence bundle, gap analysis against the EU AI Act, or agent-level red-teaming delivered as a report, that's at [hermes-labs.ai](https://hermes-labs.ai). If you just want the code to run it yourself, it's right here.
+
+**The Hermes Labs OSS audit stack** (public, production-grade, no SaaS):
+
+**Static audit** (before deployment)
+- [**lintlang**](https://github.com/hermes-labs-ai/lintlang) — Static linter for AI agent configs, tool descriptions, system prompts. `pip install lintlang`
+- [**rule-audit**](https://github.com/hermes-labs-ai/rule-audit) — Static prompt audit — contradictions, coverage gaps, priority ambiguities
+- [**scaffold-lint**](https://github.com/hermes-labs-ai/scaffold-lint) — Scaffold budget + technique stacking. `pip install scaffold-lint`
+- [**intent-verify**](https://github.com/hermes-labs-ai/intent-verify) — Repo intent verification + spec-drift checks
+
+**Runtime observability** (while the agent runs)
+- [**little-canary**](https://github.com/hermes-labs-ai/little-canary) — Prompt injection detection via sacrificial canary-model probes
+- [**suy-sideguy**](https://github.com/hermes-labs-ai/suy-sideguy) — Runtime policy guard — user-space enforcement + forensic reports
+- [**colony-probe**](https://github.com/hermes-labs-ai/colony-probe) — Prompt confidentiality audit — detects system-prompt reconstruction
+
+**Regression & scoring** (to prove what changed)
+- [**hermes-jailbench**](https://github.com/hermes-labs-ai/hermes-jailbench) — Jailbreak regression benchmark. `pip install hermes-jailbench`
+- [**agent-convergence-scorer**](https://github.com/hermes-labs-ai/agent-convergence-scorer) — Score how similar N agent outputs are. `pip install agent-convergence-scorer`
+
+**Supporting infra**
+- [**claude-router**](https://github.com/hermes-labs-ai/claude-router) · [**zer0dex**](https://github.com/hermes-labs-ai/zer0dex) · [**forgetted**](https://github.com/hermes-labs-ai/forgetted) · [**quick-gate-js**](https://github.com/hermes-labs-ai/quick-gate-js) · [**repo-audit**](https://github.com/hermes-labs-ai/repo-audit)

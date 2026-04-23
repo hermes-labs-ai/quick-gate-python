@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Standardized copyright to LPCI Innovations in LICENSE
-- Fixed stale GitHub URLs (roli-lpci/pygate → roli-lpci/quick-gate-python)
+- Fixed stale GitHub URLs (hermes-labs-ai/pygate → hermes-labs-ai/quick-gate-python)
 - Added PyPI version badge to README
 
 ## [0.1.0] - 2026-02-23
@@ -33,6 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Composite GitHub Action for CI integration
 - Structured artifacts: failures.json, run-metadata.json, agent-brief.json/md, repair-report.json, escalation.json
 
-[Unreleased]: https://github.com/roli-lpci/quick-gate-python/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/roli-lpci/quick-gate-python/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/roli-lpci/quick-gate-python/releases/tag/v0.1.0
+[Unreleased]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/hermes-labs-ai/quick-gate-python/releases/tag/v0.1.0

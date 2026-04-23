@@ -48,11 +48,11 @@ dev = [
 pygate = "pygate.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/roli-lpci/quick-gate-python"
-Documentation = "https://github.com/roli-lpci/quick-gate-python#readme"
-Repository = "https://github.com/roli-lpci/quick-gate-python"
-Issues = "https://github.com/roli-lpci/quick-gate-python/issues"
-Changelog = "https://github.com/roli-lpci/quick-gate-python/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/hermes-labs-ai/quick-gate-python"
+Documentation = "https://github.com/hermes-labs-ai/quick-gate-python#readme"
+Repository = "https://github.com/hermes-labs-ai/quick-gate-python"
+Issues = "https://github.com/hermes-labs-ai/quick-gate-python/issues"
+Changelog = "https://github.com/hermes-labs-ai/quick-gate-python/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.sdist]
 include = ["src/pygate"]
