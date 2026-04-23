@@ -41,7 +41,7 @@ dev = [
     "pytest>=7.0",
     "pytest-json-report>=1.5",
     "ruff>=0.4",
-    "pyright>=1.1",
+    "pyright>=1.1.408",
 ]
 
 [project.scripts]
