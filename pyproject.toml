@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pygate-ci"
-version = "0.1.1"
+version = "0.1.2"
 description = "Python quality gate CLI for Ruff, Pyright, and pytest with bounded auto-repair and escalation artifacts"
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
-    { name = "Hermes Labs", email = "lpcisystems@gmail.com" },
+    { name = "Hermes Labs", email = "rbosch@lpci.ai" },
 ]
 keywords = [
     "python", "quality-gate", "python-ci", "fail-fast", "lint", "typecheck",
