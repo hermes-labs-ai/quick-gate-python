@@ -1,0 +1,20 @@
+{
+  "title": "PyGate: a deterministic Python quality gate with bounded auto-repair",
+  "description": "PyGate is a quality gate for Python CI that normalizes Ruff, Pyright, and pytest results into one fail-fast decision, attempts bounded deterministic repair, and escalates with machine-readable evidence when it cannot finish safely. It is built for both human reviewers and AI coding agents, emitting structured artifacts (failures, agent brief, repair report, escalation) against published JSON schemas.",
+  "upload_type": "software",
+  "creators": [
+    { "name": "Bosch Rodriguez, Rolando", "orcid": "0009-0005-4896-1112", "affiliation": "Hermes Labs" }
+  ],
+  "keywords": [
+    "AI reliability",
+    "AI assurance",
+    "silent failure modes",
+    "evidence-first",
+    "quality gate",
+    "deterministic auto-repair",
+    "structured escalation",
+    "agent-readable CI artifacts"
+  ],
+  "license": "Apache-2.0",
+  "version": "0.1.2"
+}
