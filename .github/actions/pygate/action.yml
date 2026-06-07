@@ -40,7 +40,7 @@ runs:
 
     - name: Install PyGate
       shell: bash
-      run: pip install pygate-ci
+      run: pip install pygate-ci ruff pyright
 
     - name: Detect changed files
       id: changes
