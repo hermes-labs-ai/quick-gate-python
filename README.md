@@ -72,7 +72,7 @@ pygate summarize --input <failures.json>
 pygate repair --input <failures.json> [--max-attempts N]
 ~~~
 
-`--changed-files` accepts either one path per line or a JSON array of strings. Relative paths are resolved from the current working directory. When omitted, PyGate runs the configured whole-project commands and records an empty explicit path list.
+`--changed-files` accepts either one path per line or a JSON array of strings. Relative paths are resolved from the current working directory. When omitted, PyGate runs the configured whole-project commands and snapshots the project tree (excluding generated and hidden state directories) so the result remains bound to the checked inputs.
 
 Exit codes are:
 

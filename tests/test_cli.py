@@ -33,7 +33,7 @@ class TestCLIParsing:
         with pytest.raises(SystemExit) as exc:
             main(["run", "--mode", "canary"])
         assert exc.value.code == 0
-        assert mock_evaluate.call_args.kwargs["checked_paths"] == []
+        assert mock_evaluate.call_args.kwargs["checked_paths"] == ["."]
 
     def test_summarize_requires_input(self):
         with pytest.raises(SystemExit) as exc:

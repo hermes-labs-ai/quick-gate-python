@@ -71,7 +71,7 @@ def main(argv: list[str] | None = None) -> None:
     cwd = Path.cwd()
 
     if args.command == "run":
-        changed_files: list[str] = []
+        changed_files = ["."]
         if args.changed_files:
             changed_files_path = Path(args.changed_files)
             if not changed_files_path.is_absolute():
