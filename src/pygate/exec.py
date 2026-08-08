@@ -102,8 +102,8 @@ def run_command(
     merged_env = {**os.environ, **(env or {})}
     started_at = now_iso()
     start = time.monotonic()
-    argv = _argv_for(command)
-    display = _display_command(command, argv, shell)
+    argv: list[str] = []
+    display = command if isinstance(command, str) else ""
     timed_out = False
     missing_executable = False
     error: str | None = None
@@ -114,6 +114,8 @@ def run_command(
     exit_code: int | None = None
 
     try:
+        argv = _argv_for(command)
+        display = _display_command(command, argv, shell)
         popen_command: str | list[str] = shlex.join(argv) if shell else argv
         if shell and isinstance(command, str):
             popen_command = command
@@ -143,6 +145,10 @@ def run_command(
         stdout_thread.join(timeout=1)
         stderr_thread.join(timeout=1)
         exit_code = process.returncode
+    except ValueError as exc:
+        exit_code = 2
+        error = str(exc)
+        diagnostics.append("invalid command arguments")
     except FileNotFoundError as exc:
         missing_executable = True
         exit_code = 127

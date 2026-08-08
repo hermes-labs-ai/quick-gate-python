@@ -85,6 +85,13 @@ def test_missing_executable_is_structured(tmp_path: Path):
     assert "executable not found" in trace.diagnostics
 
 
+def test_malformed_command_is_structured(tmp_path: Path):
+    trace = run_command("echo 'unterminated", cwd=tmp_path)
+    assert trace.exit_code == 2
+    assert trace.error
+    assert "invalid command arguments" in trace.diagnostics
+
+
 def test_signal_is_recorded(tmp_path: Path):
     trace = run_command(
         [sys.executable, "-c", f"import os, signal; os.kill(os.getpid(), signal.{signal.SIGTERM.name})"],
