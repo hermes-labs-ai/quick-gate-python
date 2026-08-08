@@ -81,8 +81,8 @@ def _evaluate(
         artifact_dir=artifact_dir,
     )
     snapshot_after, _ = snapshot_digest(checked_paths, cwd=cwd)
-    errors: list[str] = []
-    diagnostics: list[str] = []
+    errors: list[str | dict[str, Any]] = []
+    diagnostics: list[str | dict[str, Any]] = []
     if snapshot_before != snapshot_after:
         errors.append("checked input changed while the gate was running")
         diagnostics.append("snapshot digest mismatch: result is stale and must not be treated as a clean read")

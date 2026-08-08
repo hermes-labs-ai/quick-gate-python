@@ -32,8 +32,8 @@ class GateResultV1(BaseModel):
     command_versions: dict[str, str | dict[str, Any]] = Field(default_factory=dict)
     elapsed_ms: int = 0
     output_truncated: bool = False
-    errors: list[str] = Field(default_factory=list)
-    diagnostics: list[str] = Field(default_factory=list)
+    errors: list[str | dict[str, Any]] = Field(default_factory=list)
+    diagnostics: list[str | dict[str, Any]] = Field(default_factory=list)
     config_identity: str = "defaults"
     config_digest: str = ""
     config_version: str = "pygate-config/v1"
