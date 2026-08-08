@@ -55,10 +55,13 @@ Issues = "https://github.com/hermes-labs-ai/quick-gate-python/issues"
 Changelog = "https://github.com/hermes-labs-ai/quick-gate-python/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.sdist]
-include = ["src/pygate"]
+include = ["src/pygate", "schemas/gate-result-v1.schema.json"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pygate"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"schemas/gate-result-v1.schema.json" = "pygate/schemas/gate-result-v1.schema.json"
 
 [tool.ruff]
 line-length = 120

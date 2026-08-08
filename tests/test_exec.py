@@ -10,12 +10,12 @@ class TestRunCommand:
         assert trace.exit_code == 0
 
     def test_captures_stderr(self, tmp_path):
-        trace = run_command("echo err >&2", cwd=tmp_path)
+        trace = run_command("echo err >&2", cwd=tmp_path, shell=True)
         assert "err" in trace.stderr
         assert trace.exit_code == 0
 
     def test_returns_exit_code(self, tmp_path):
-        trace = run_command("exit 42", cwd=tmp_path)
+        trace = run_command("exit 42", cwd=tmp_path, shell=True)
         assert trace.exit_code == 42
 
     def test_timeout_sets_timed_out_flag(self, tmp_path):
@@ -36,7 +36,7 @@ class TestRunCommand:
         assert str(tmp_path) in trace.stdout
 
     def test_custom_env(self, tmp_path):
-        trace = run_command("echo $MY_TEST_VAR", cwd=tmp_path, env={"MY_TEST_VAR": "hello123"})
+        trace = run_command("echo $MY_TEST_VAR", cwd=tmp_path, env={"MY_TEST_VAR": "hello123"}, shell=True)
         assert "hello123" in trace.stdout
 
     def test_records_command(self, tmp_path):

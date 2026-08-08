@@ -99,10 +99,18 @@ class CommandTrace(BaseModel):
     cwd: str
     started_at: str
     duration_ms: int
-    exit_code: int
+    exit_code: int | None
     timed_out: bool = False
     stdout: str = ""
     stderr: str = ""
+    argv: list[str] = Field(default_factory=list)
+    shell: bool = False
+    timeout_seconds: float | None = None
+    output_truncated: bool = False
+    signal: int | None = None
+    missing_executable: bool = False
+    error: str | None = None
+    diagnostics: list[str] = Field(default_factory=list)
 
 
 class EnvironmentInfo(BaseModel):

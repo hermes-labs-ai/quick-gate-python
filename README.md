@@ -116,11 +116,29 @@ Changed Files ──> Run Gates ──> Findings? ──No──> Pass
 
 ```
 pygate run --mode canary|full --changed-files <path>
+pygate run --mode canary|full --changed-files <path> [--output-dir <external-dir>]
 pygate summarize --input .pygate/failures.json
 pygate repair --input .pygate/failures.json [--max-attempts N]
 ```
 
-**Exit codes:** `0` = pass, `1` = fail (`run`), `2` = escalated (`repair`)
+**Exit codes:** `0` = pass, `1` = fail or timeout (`run`), `2` = escalated (`repair`)
+
+`pygate run` emits the versioned `gate-result/v1` JSON contract and does not
+create files when `--output-dir` is omitted. Use `--output-dir` when CLI
+artifacts are wanted; the directory is created exactly where specified. The
+embeddable API is side-effect-free:
+
+```python
+from pygate.api import evaluate
+from pygate.models import RunMode
+
+result = evaluate(mode=RunMode.CANARY, checked_paths=["src/app.py"])
+```
+
+Commands use argv-safe execution by default. A configured command string is
+tokenized as arguments, so shell metacharacters remain data. Legacy shell
+syntax requires the explicit `--unsafe-shell` flag or
+`allow_unsafe_shell = true` configuration.
 
 ## Artifacts
 
@@ -129,7 +147,8 @@ All artifacts are written to `.pygate/`:
 | File | Description |
 |------|-------------|
 | `failures.json` | Structured findings with severity, rule codes, and evidence |
-| `run-metadata.json` | Gate execution traces (commands, stdout, stderr, durations) |
+| `gate-result.json` | Versioned `gate-result/v1` result for embedders and CI |
+| `run-metadata.json` | Gate execution traces (argv, stdout, stderr, durations, timeout/truncation state) |
 | `agent-brief.json` | Priority actions and retry policy for AI agents |
 | `agent-brief.md` | Human-readable summary |
 | `repair-report.json` | Repair attempt history (on success) |
@@ -179,6 +198,9 @@ max_attempts = 3
 max_patch_lines = 150
 abort_on_no_improvement = 2
 time_cap_seconds = 1200
+command_timeout_seconds = 120
+gate_timeout_seconds = 600
+output_cap_bytes = 1048576
 
 [commands]
 lint = "ruff check --output-format json ."

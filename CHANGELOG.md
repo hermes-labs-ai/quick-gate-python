@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added the side-effect-free `pygate.api.evaluate` primitive with argv-safe command execution, bounded timeouts, capped output, snapshot binding, and the `gate-result/v1` contract.
+- Added explicit CLI artifact output via `--output-dir`; `pygate run` without it emits JSON without creating worktree state.
+
 ## [0.1.2] - 2026-05-30
 
 ### Changed

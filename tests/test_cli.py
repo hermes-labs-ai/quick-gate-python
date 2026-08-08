@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from pygate.cli import main
+from pygate.contract import GateResultV1
 
 
 class TestCLIParsing:
@@ -43,11 +44,11 @@ class TestCLIParsing:
 
 
 class TestCLIRun:
-    @patch("pygate.cli.execute_run")
+    @patch("pygate.cli.evaluate")
     @patch("pygate.cli.load_changed_files")
-    def test_run_pass_exits_0(self, mock_load, mock_run, capsys, tmp_path: Path):
+    def test_run_pass_exits_0(self, mock_load, mock_evaluate, capsys, tmp_path: Path):
         mock_load.return_value = ["src/foo.py"]
-        mock_run.return_value = {"status": "pass", "run_id": "test", "failures_path": "", "metadata_path": ""}
+        mock_evaluate.return_value = GateResultV1(status="pass", snapshot_digest="test")
 
         changed = tmp_path / "changed.txt"
         changed.write_text("src/foo.py\n")
@@ -56,11 +57,11 @@ class TestCLIRun:
             main(["run", "--mode", "canary", "--changed-files", str(changed)])
         assert exc.value.code == 0
 
-    @patch("pygate.cli.execute_run")
+    @patch("pygate.cli.evaluate")
     @patch("pygate.cli.load_changed_files")
-    def test_run_fail_exits_1(self, mock_load, mock_run, capsys, tmp_path: Path):
+    def test_run_fail_exits_1(self, mock_load, mock_evaluate, capsys, tmp_path: Path):
         mock_load.return_value = ["src/foo.py"]
-        mock_run.return_value = {"status": "fail", "run_id": "test", "failures_path": "", "metadata_path": ""}
+        mock_evaluate.return_value = GateResultV1(status="fail", snapshot_digest="test")
 
         changed = tmp_path / "changed.txt"
         changed.write_text("src/foo.py\n")

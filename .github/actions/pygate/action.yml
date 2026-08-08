@@ -65,7 +65,7 @@ runs:
           exit 1
         fi
         set +e
-        pygate run --mode "$PYGATE_MODE" --changed-files .pygate-changed-files.txt
+        pygate run --mode "$PYGATE_MODE" --changed-files .pygate-changed-files.txt --output-dir .pygate
         EXIT_CODE=$?
         set -e
         if [ $EXIT_CODE -eq 0 ]; then

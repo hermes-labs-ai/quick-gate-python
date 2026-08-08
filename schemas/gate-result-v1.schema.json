@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/hermes-labs-ai/quick-gate-python/blob/main/schemas/gate-result-v1.schema.json",
+  "title": "PyGate gate-result/v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "status",
+    "snapshot_digest",
+    "checked_paths",
+    "checks",
+    "findings",
+    "command_versions",
+    "elapsed_ms",
+    "output_truncated",
+    "errors",
+    "diagnostics",
+    "config_identity",
+    "config_digest",
+    "config_version",
+    "package_version"
+  ],
+  "properties": {
+    "schema": {"const": "gate-result/v1"},
+    "status": {"enum": ["pass", "fail", "timeout", "error"]},
+    "snapshot_digest": {"type": "string", "minLength": 1},
+    "snapshot_digest_after": {"type": ["string", "null"]},
+    "snapshot_changed": {"type": "boolean"},
+    "checked_paths": {"type": "array", "items": {"type": "string"}},
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["name", "status", "argv", "elapsed_ms", "output_truncated", "timed_out"],
+        "properties": {
+          "name": {"type": "string"},
+          "status": {"enum": ["pass", "fail", "timeout", "missing", "error"]},
+          "argv": {"type": "array", "items": {"type": "string"}},
+          "elapsed_ms": {"type": "integer", "minimum": 0},
+          "exit_code": {"type": ["integer", "null"]},
+          "signal": {"type": ["integer", "null"]},
+          "timed_out": {"type": "boolean"},
+          "output_truncated": {"type": "boolean"},
+          "stdout": {"type": "string"},
+          "stderr": {"type": "string"},
+          "diagnostics": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "findings": {"type": "array"},
+    "command_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "elapsed_ms": {"type": "integer", "minimum": 0},
+    "output_truncated": {"type": "boolean"},
+    "errors": {"type": "array", "items": {"type": "string"}},
+    "diagnostics": {"type": "array", "items": {"type": "string"}},
+    "config_identity": {"type": "string"},
+    "config_digest": {"type": "string"},
+    "config_version": {"type": "string"},
+    "package_version": {"type": "string"}
+  }
+}
