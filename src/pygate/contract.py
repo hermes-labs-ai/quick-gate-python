@@ -29,7 +29,7 @@ class GateResultV1(BaseModel):
     checked_paths: list[str] = Field(default_factory=list)
     checks: list[CheckResult] = Field(default_factory=list)
     findings: list[dict[str, Any]] = Field(default_factory=list)
-    command_versions: dict[str, str] = Field(default_factory=dict)
+    command_versions: dict[str, str | dict[str, Any]] = Field(default_factory=dict)
     elapsed_ms: int = 0
     output_truncated: bool = False
     errors: list[str] = Field(default_factory=list)

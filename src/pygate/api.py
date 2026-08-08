@@ -91,7 +91,7 @@ def _evaluate(
         if trace.error:
             errors.append(trace.error)
 
-    command_versions: dict[str, str] = {}
+    command_versions: dict[str, str | dict[str, Any]] = {}
     for trace in traces:
         if trace.argv:
             key = trace.argv[0]
