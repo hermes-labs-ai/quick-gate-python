@@ -38,9 +38,11 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Install PyGate
+    - name: Install checked-out PyGate action source
       shell: bash
-      run: pip install pygate-ci ruff pyright
+      run: |
+        ACTION_ROOT="$(cd "$GITHUB_ACTION_PATH/../../.." && pwd)"
+        python -m pip install "$ACTION_ROOT" ruff pyright
 
     - name: Detect changed files
       id: changes

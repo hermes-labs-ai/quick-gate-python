@@ -10,7 +10,7 @@ from pygate.constants import CONTRACT_VERSION
 
 class CheckResult(BaseModel):
     name: str
-    status: Literal["pass", "fail", "timeout", "missing", "error"]
+    status: Literal["pass", "fail", "timeout", "missing", "error", "skipped"]
     argv: list[str] = Field(default_factory=list)
     elapsed_ms: int = 0
     exit_code: int | None = None

@@ -27,7 +27,11 @@ def _build_parser() -> argparse.ArgumentParser:
     # run
     run_p = sub.add_parser("run", help="Run quality gates")
     run_p.add_argument("--mode", required=True, choices=["canary", "full"], help="Gate mode")
-    run_p.add_argument("--changed-files", required=True, help="Path to changed files list")
+    run_p.add_argument(
+        "--changed-files",
+        default=None,
+        help="Optional path to a newline-delimited or JSON changed-files list",
+    )
     run_p.add_argument(
         "--output-dir",
         default=None,
@@ -67,10 +71,12 @@ def main(argv: list[str] | None = None) -> None:
     cwd = Path.cwd()
 
     if args.command == "run":
-        changed_files_path = Path(args.changed_files)
-        if not changed_files_path.is_absolute():
-            changed_files_path = cwd / changed_files_path
-        changed_files = load_changed_files(changed_files_path)
+        changed_files: list[str] = []
+        if args.changed_files:
+            changed_files_path = Path(args.changed_files)
+            if not changed_files_path.is_absolute():
+                changed_files_path = cwd / changed_files_path
+            changed_files = load_changed_files(changed_files_path)
 
         mode = RunMode(args.mode)
         if args.output_dir:

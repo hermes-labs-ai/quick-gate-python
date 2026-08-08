@@ -16,14 +16,13 @@ PyGate is published as `pygate-ci` and installs the `pygate` command. It support
 python -m pip install pygate-ci ruff pyright pytest pytest-json-report
 ~~~
 
-Create a changed-file list from the current Git diff, then run a canary gate:
+Run a whole-project canary gate:
 
 ~~~bash
-git diff --name-only HEAD^ > /tmp/pygate-changed-files.txt
-pygate run --mode canary --changed-files /tmp/pygate-changed-files.txt
+pygate run --mode canary
 ~~~
 
-The command prints a JSON `gate-result/v1` result. With no `--output-dir`, it does not create `.pygate` or other files. `canary` runs Ruff and Pyright; `full` also runs pytest.
+The command prints a JSON `gate-result/v1` result. With no `--output-dir`, it does not create `.pygate` or other files. `canary` runs Ruff and Pyright; `full` also runs pytest. Pass `--changed-files PATH` when you want the result's snapshot metadata bound to a newline-delimited or JSON file list.
 
 For a file-backed CI result, choose the output directory explicitly:
 
@@ -68,12 +67,12 @@ PyGate does not replace Ruff, Pyright, or pytest. It gives their results a predi
 
 ~~~text
 pygate --version
-pygate run --mode canary|full --changed-files <path> [--output-dir <directory>] [--unsafe-shell]
+pygate run --mode canary|full [--changed-files <path>] [--output-dir <directory>] [--unsafe-shell]
 pygate summarize --input <failures.json>
 pygate repair --input <failures.json> [--max-attempts N]
 ~~~
 
-`--changed-files` accepts either one path per line or a JSON array of strings. Relative paths are resolved from the current working directory.
+`--changed-files` accepts either one path per line or a JSON array of strings. Relative paths are resolved from the current working directory. When omitted, PyGate runs the configured whole-project commands and records an empty explicit path list.
 
 Exit codes are:
 
@@ -209,7 +208,7 @@ jobs:
           post-comment: "true"
 ~~~
 
-The action installs `pygate-ci`, Ruff, and Pyright, detects changed files, writes run artifacts to `.pygate/`, optionally attempts repair, optionally posts a pull-request comment, and uploads the artifact directory. Canary mode skips tests by default. To use full mode with the default test command, make `pytest` and `pytest-json-report` available in the action environment; the composite action does not install those two packages itself.
+The action installs PyGate from the action checkout itself, then installs Ruff and Pyright, detects changed files, writes run artifacts to `.pygate/`, optionally attempts repair, optionally posts a pull-request comment, and uploads the artifact directory. This prevents the action implementation and the invoked CLI from drifting across releases. Canary mode skips tests by default. To use full mode with the default test command, make `pytest` and `pytest-json-report` available in the action environment; the composite action does not install those two packages itself.
 
 PyGate never grants merge authority. A workflow still decides whether a failed, timed-out, or escalated job blocks a pull request, and any comment or artifact should be treated as untrusted command output before security-sensitive rendering.
 

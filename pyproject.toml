@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pygate-ci"
-version = "0.1.2"
+version = "0.2.0"
 description = "Python quality gate CLI for Ruff, Pyright, and pytest with bounded auto-repair and escalation artifacts"
 readme = "README.md"
 license = "Apache-2.0"
@@ -42,6 +42,7 @@ dev = [
     "pytest-json-report>=1.5",
     "ruff>=0.15.11",
     "pyright>=1.1",
+    "jsonschema>=4.23",
 ]
 
 [project.scripts]

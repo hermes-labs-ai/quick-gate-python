@@ -381,8 +381,8 @@ class TestCollectScopedFilesLimit:
     def test_max_20_files(self):
         failures = FailuresPayload(
             run_id="test",
-            mode="canary",
-            status="fail",
+            mode=RunMode.CANARY,
+            status=RunStatus.FAIL,
             timestamp="2026-01-01T00:00:00Z",
             changed_files=[f"src/file_{i}.py" for i in range(30)],
             gates=[GateResult(name=GateName.LINT, status=GateStatus.FAIL, duration_ms=10)],

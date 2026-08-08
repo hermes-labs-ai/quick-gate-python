@@ -27,10 +27,13 @@ class TestCLIParsing:
             main(["run", "--changed-files", "foo.txt"])
         assert exc.value.code != 0
 
-    def test_run_requires_changed_files(self):
+    @patch("pygate.cli.evaluate")
+    def test_run_without_changed_files_uses_whole_project_commands(self, mock_evaluate):
+        mock_evaluate.return_value = GateResultV1(status="pass", snapshot_digest="test")
         with pytest.raises(SystemExit) as exc:
             main(["run", "--mode", "canary"])
-        assert exc.value.code != 0
+        assert exc.value.code == 0
+        assert mock_evaluate.call_args.kwargs["checked_paths"] == []
 
     def test_summarize_requires_input(self):
         with pytest.raises(SystemExit) as exc:

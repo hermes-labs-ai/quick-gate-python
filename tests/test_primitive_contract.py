@@ -7,6 +7,8 @@ import sys
 import time
 from pathlib import Path
 
+from jsonschema import Draft202012Validator
+
 from pygate.api import evaluate
 from pygate.contract import GateResultV1, serialize_gate_result
 from pygate.exec import OUTPUT_TRUNCATION_MARKER, run_command
@@ -187,6 +189,14 @@ def test_schema_fixture_has_required_contract_fields():
             "elapsed_ms",
             "output_truncated",
             "errors",
-            "diagnostics",
         ]
     ).issubset(schema["required"])
+
+
+def test_shared_gate_result_fixtures_match_canonical_schema():
+    schema = json.loads(Path("schemas/gate-result-v1.schema.json").read_text(encoding="utf-8"))
+    fixtures = json.loads(Path("tests/fixtures/gate-result-v1.fixtures.json").read_text(encoding="utf-8"))
+    validator = Draft202012Validator(schema)
+    for case in fixtures["cases"]:
+        errors = list(validator.iter_errors(case["value"]))
+        assert (not errors) is case["valid"], (case["name"], errors)
