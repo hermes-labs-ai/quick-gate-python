@@ -201,6 +201,35 @@ def test_whole_project_run_excludes_explicit_artifact_directory(tmp_path: Path, 
     assert all(not path.startswith("artifacts/") for path in payload["checked_paths"])
 
 
+def test_whole_project_run_resolves_symlinked_artifact_directory(tmp_path: Path, monkeypatch):
+    real_output = tmp_path / "real-artifacts"
+    real_output.mkdir()
+    output_dir = tmp_path / "artifact-link"
+    output_dir.symlink_to(real_output, target_is_directory=True)
+    config = _passing_config()
+    config["commands"]["test"] = [
+        sys.executable,
+        "-c",
+        (
+            "import json; from pathlib import Path; "
+            f"Path({str(output_dir / 'pytest-report.json')!r}).write_text(json.dumps({{'tests': []}}))"
+        ),
+    ]
+    monkeypatch.setattr("pygate.run_command.load_config", lambda _: config)
+
+    result = execute_run(
+        mode=RunMode.FULL,
+        changed_files=["."],
+        cwd=tmp_path,
+        output_dir=output_dir,
+    )
+
+    payload = json.loads(Path(result["gate_result_path"]).read_text(encoding="utf-8"))
+    assert result["status"] == "pass"
+    assert payload["snapshot_changed"] is False
+    assert all(not path.startswith("real-artifacts/") for path in payload["checked_paths"])
+
+
 def test_contract_serialization_is_deterministic():
     base = {
         "schema": "gate-result/v1",

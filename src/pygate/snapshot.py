@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +40,7 @@ def snapshot_digest(
     """
 
     requested = checked_paths
-    excluded = [path.absolute() for path in (exclude_paths or [])]
+    excluded = [path.resolve() for path in (exclude_paths or [])]
     records: list[dict[str, Any]] = []
     normalized: set[str] = set()
     for raw_path in requested:
@@ -50,7 +51,7 @@ def snapshot_digest(
         if not files and not path.is_dir():
             files = [path]
         for file_path in files:
-            if any(file_path.absolute().is_relative_to(path) for path in excluded):
+            if any(file_path.resolve().is_relative_to(path) for path in excluded):
                 continue
             relative = _relative(file_path, cwd)
             if relative in normalized:
@@ -62,11 +63,25 @@ def snapshot_digest(
                     "exists": True,
                     "symlink": os.readlink(file_path),
                 }
-                if file_path.exists() and file_path.is_file():
+                try:
+                    target_stat = file_path.stat()
+                except FileNotFoundError:
+                    record["target_type"] = "missing"
+                except OSError:
+                    record["target_type"] = "unreadable"
+                else:
+                    record["target_type"] = (
+                        "file"
+                        if stat.S_ISREG(target_stat.st_mode)
+                        else "directory"
+                        if stat.S_ISDIR(target_stat.st_mode)
+                        else "other"
+                    )
+                if record.get("target_type") == "file":
                     try:
                         content = file_path.read_bytes()
                     except OSError:
-                        pass
+                        record["target_type"] = "unreadable"
                     else:
                         record.update({"size": len(content), "sha256": hashlib.sha256(content).hexdigest()})
                 records.append(record)
