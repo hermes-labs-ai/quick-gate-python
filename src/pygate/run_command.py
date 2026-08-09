@@ -55,6 +55,9 @@ def execute_run(
 
     cwd = cwd or Path.cwd()
     artifact_dir = output_dir or cwd / PYGATE_DIR
+    if not artifact_dir.is_absolute():
+        artifact_dir = cwd / artifact_dir
+    artifact_dir = artifact_dir.absolute()
     ensure_dir(artifact_dir)
     run_id = _generate_run_id()
     started_at = now_iso()

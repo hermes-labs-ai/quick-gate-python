@@ -29,7 +29,9 @@ def _files_for_path(path: Path) -> list[Path]:
     return files
 
 
-def snapshot_digest(checked_paths: list[str], *, cwd: Path) -> tuple[str, list[str]]:
+def snapshot_digest(
+    checked_paths: list[str], *, cwd: Path, exclude_paths: list[Path] | None = None
+) -> tuple[str, list[str]]:
     """Hash checked input bytes and return the canonical path list.
 
     Missing paths are included as explicit records, so a later creation or
@@ -37,6 +39,7 @@ def snapshot_digest(checked_paths: list[str], *, cwd: Path) -> tuple[str, list[s
     """
 
     requested = checked_paths
+    excluded = [path.absolute() for path in (exclude_paths or [])]
     records: list[dict[str, Any]] = []
     normalized: set[str] = set()
     for raw_path in requested:
@@ -44,9 +47,11 @@ def snapshot_digest(checked_paths: list[str], *, cwd: Path) -> tuple[str, list[s
         if not path.is_absolute():
             path = cwd / path
         files = _files_for_path(path)
-        if not files:
+        if not files and not path.is_dir():
             files = [path]
         for file_path in files:
+            if any(file_path.absolute().is_relative_to(path) for path in excluded):
+                continue
             relative = _relative(file_path, cwd)
             if relative in normalized:
                 continue
@@ -58,8 +63,12 @@ def snapshot_digest(checked_paths: list[str], *, cwd: Path) -> tuple[str, list[s
                     "symlink": os.readlink(file_path),
                 }
                 if file_path.exists() and file_path.is_file():
-                    content = file_path.read_bytes()
-                    record.update({"size": len(content), "sha256": hashlib.sha256(content).hexdigest()})
+                    try:
+                        content = file_path.read_bytes()
+                    except OSError:
+                        pass
+                    else:
+                        record.update({"size": len(content), "sha256": hashlib.sha256(content).hexdigest()})
                 records.append(record)
                 continue
             if not file_path.exists() or not file_path.is_file():

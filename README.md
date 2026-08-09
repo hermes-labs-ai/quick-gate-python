@@ -85,7 +85,7 @@ Exit codes are:
 There are two intentionally different run paths:
 
 - **Current CLI path:** `pygate run` without `--output-dir` prints the contract JSON and is side-effect-free with respect to project files.
-- **Explicit artifact path:** `pygate run --output-dir DIR` creates `DIR` and writes `failures.json`, `run-metadata.json`, and `gate-result.json` there. A default full-mode pytest command also writes `pytest-report.json` there.
+- **Explicit artifact path:** `pygate run --output-dir DIR` creates `DIR` and writes `failures.json`, `run-metadata.json`, and `gate-result.json` there. A default full-mode pytest command also writes `pytest-report.json` there. The selected artifact directory is excluded from input snapshots, including when it is a non-hidden directory inside the project.
 - **Legacy artifact commands:** `pygate summarize` and `pygate repair` use `.pygate/` in the current working directory for their outputs. `pygate repair` may modify eligible Python files while applying Ruff fixes; it writes `repair-report.json` on repair success or `escalation.json` when it stops without passing.
 
 Important artifact files include:

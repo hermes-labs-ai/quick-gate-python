@@ -175,6 +175,32 @@ def test_external_artifact_directory_does_not_pollute_cwd(tmp_path: Path):
             output_dir.rmdir()
 
 
+def test_whole_project_run_excludes_explicit_artifact_directory(tmp_path: Path, monkeypatch):
+    output_dir = tmp_path / "artifacts"
+    config = _passing_config()
+    config["commands"]["test"] = [
+        sys.executable,
+        "-c",
+        (
+            "import json; from pathlib import Path; "
+            f"Path({str(output_dir / 'pytest-report.json')!r}).write_text(json.dumps({{'tests': []}}))"
+        ),
+    ]
+    monkeypatch.setattr("pygate.run_command.load_config", lambda _: config)
+
+    result = execute_run(
+        mode=RunMode.FULL,
+        changed_files=["."],
+        cwd=tmp_path,
+        output_dir=output_dir,
+    )
+
+    payload = json.loads(Path(result["gate_result_path"]).read_text(encoding="utf-8"))
+    assert result["status"] == "pass"
+    assert payload["snapshot_changed"] is False
+    assert all(not path.startswith("artifacts/") for path in payload["checked_paths"])
+
+
 def test_contract_serialization_is_deterministic():
     base = {
         "schema": "gate-result/v1",

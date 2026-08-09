@@ -69,7 +69,8 @@ def _evaluate(
     policy = loaded_config.get("policy", {})
     command_timeout = float(policy.get("command_timeout_seconds", 120))
     output_cap = int(policy.get("output_cap_bytes", 1_048_576))
-    snapshot_before, canonical_paths = snapshot_digest(checked_paths, cwd=cwd)
+    exclusions = [artifact_dir] if artifact_dir is not None else []
+    snapshot_before, canonical_paths = snapshot_digest(checked_paths, cwd=cwd, exclude_paths=exclusions)
     gate_results, findings, traces = run_deterministic_gates(
         mode=mode,
         cwd=cwd,
@@ -80,7 +81,7 @@ def _evaluate(
         unsafe_shell=unsafe_shell or bool(loaded_config.get("allow_unsafe_shell", False)),
         artifact_dir=artifact_dir,
     )
-    snapshot_after, _ = snapshot_digest(checked_paths, cwd=cwd)
+    snapshot_after, _ = snapshot_digest(checked_paths, cwd=cwd, exclude_paths=exclusions)
     errors: list[str | dict[str, Any]] = []
     diagnostics: list[str | dict[str, Any]] = []
     if snapshot_before != snapshot_after:
