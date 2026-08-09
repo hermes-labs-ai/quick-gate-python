@@ -14,6 +14,7 @@ from pygate.contract import GateResultV1, serialize_gate_result
 from pygate.exec import OUTPUT_TRUNCATION_MARKER, run_command
 from pygate.models import RunMode
 from pygate.run_command import execute_run
+from pygate.snapshot import snapshot_digest
 
 
 def _passing_config() -> dict:
@@ -139,6 +140,20 @@ def test_changed_input_is_marked_stale(tmp_path: Path):
     assert result.snapshot_changed is True
     assert result.status == "fail"
     assert "checked input changed" in result.errors[0]
+
+
+def test_snapshot_preserves_symlink_identity(tmp_path: Path):
+    target = tmp_path / "target.txt"
+    target.write_text("first\n", encoding="utf-8")
+    link = tmp_path / "link.txt"
+    link.symlink_to("target.txt")
+
+    first_digest, first_paths = snapshot_digest(["link.txt"], cwd=tmp_path)
+    target.write_text("second\n", encoding="utf-8")
+    second_digest, second_paths = snapshot_digest(["link.txt"], cwd=tmp_path)
+
+    assert first_paths == second_paths == ["link.txt"]
+    assert first_digest == second_digest
 
 
 def test_external_artifact_directory_does_not_pollute_cwd(tmp_path: Path):

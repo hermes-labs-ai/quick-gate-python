@@ -11,9 +11,9 @@ _SKIP_DIRS = {".git", ".pygate", "__pycache__", ".venv", "venv", "node_modules"}
 
 def _relative(path: Path, cwd: Path) -> str:
     try:
-        return path.resolve().relative_to(cwd.resolve()).as_posix()
+        return path.absolute().relative_to(cwd.resolve()).as_posix()
     except ValueError:
-        return path.resolve().as_posix()
+        return path.absolute().as_posix()
 
 
 def _files_for_path(path: Path) -> list[Path]:
@@ -51,6 +51,15 @@ def snapshot_digest(checked_paths: list[str], *, cwd: Path) -> tuple[str, list[s
             if relative in normalized:
                 continue
             normalized.add(relative)
+            if file_path.is_symlink():
+                records.append(
+                    {
+                        "path": relative,
+                        "exists": True,
+                        "symlink": os.readlink(file_path),
+                    }
+                )
+                continue
             if not file_path.exists() or not file_path.is_file():
                 records.append({"path": relative, "exists": False})
                 continue
