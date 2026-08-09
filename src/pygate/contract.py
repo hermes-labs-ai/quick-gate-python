@@ -14,7 +14,7 @@ class CheckResult(BaseModel):
     argv: list[str] = Field(default_factory=list)
     elapsed_ms: int = 0
     exit_code: int | None = None
-    signal: int | None = None
+    signal: int | str | None = None
     timed_out: bool = False
     output_truncated: bool = False
     stdout: str = ""
@@ -34,7 +34,7 @@ class GateResultV1(BaseModel):
     output_truncated: bool = False
     errors: list[str | dict[str, Any]] = Field(default_factory=list)
     diagnostics: list[str | dict[str, Any]] = Field(default_factory=list)
-    config_identity: str = "defaults"
+    config_identity: str | dict[str, Any] = "defaults"
     config_digest: str = ""
     config_version: str = "pygate-config/v1"
     package_version: str = ""

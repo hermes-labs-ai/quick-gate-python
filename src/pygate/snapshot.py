@@ -52,13 +52,15 @@ def snapshot_digest(checked_paths: list[str], *, cwd: Path) -> tuple[str, list[s
                 continue
             normalized.add(relative)
             if file_path.is_symlink():
-                records.append(
-                    {
-                        "path": relative,
-                        "exists": True,
-                        "symlink": os.readlink(file_path),
-                    }
-                )
+                record: dict[str, object] = {
+                    "path": relative,
+                    "exists": True,
+                    "symlink": os.readlink(file_path),
+                }
+                if file_path.exists() and file_path.is_file():
+                    content = file_path.read_bytes()
+                    record.update({"size": len(content), "sha256": hashlib.sha256(content).hexdigest()})
+                records.append(record)
                 continue
             if not file_path.exists() or not file_path.is_file():
                 records.append({"path": relative, "exists": False})

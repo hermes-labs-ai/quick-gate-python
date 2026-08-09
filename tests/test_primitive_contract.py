@@ -153,7 +153,7 @@ def test_snapshot_preserves_symlink_identity(tmp_path: Path):
     second_digest, second_paths = snapshot_digest(["link.txt"], cwd=tmp_path)
 
     assert first_paths == second_paths == ["link.txt"]
-    assert first_digest == second_digest
+    assert first_digest != second_digest
 
 
 def test_external_artifact_directory_does_not_pollute_cwd(tmp_path: Path):
@@ -215,3 +215,5 @@ def test_shared_gate_result_fixtures_match_canonical_schema():
     for case in fixtures["cases"]:
         errors = list(validator.iter_errors(case["value"]))
         assert (not errors) is case["valid"], (case["name"], errors)
+        if case["valid"]:
+            GateResultV1.model_validate(case["value"])
