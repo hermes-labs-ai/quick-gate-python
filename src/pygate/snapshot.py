@@ -17,6 +17,13 @@ def _relative(path: Path, cwd: Path) -> str:
         return path.absolute().as_posix()
 
 
+def _resolved_or_absolute(path: Path) -> Path:
+    try:
+        return path.resolve()
+    except (OSError, RuntimeError):
+        return path.absolute()
+
+
 def _files_for_path(path: Path) -> list[Path]:
     if path.is_file() or path.is_symlink():
         return [path]
@@ -51,7 +58,8 @@ def snapshot_digest(
         if not files and not path.is_dir():
             files = [path]
         for file_path in files:
-            if any(file_path.resolve().is_relative_to(path) for path in excluded):
+            candidate = _resolved_or_absolute(file_path)
+            if any(candidate.is_relative_to(path) for path in excluded):
                 continue
             relative = _relative(file_path, cwd)
             if relative in normalized:

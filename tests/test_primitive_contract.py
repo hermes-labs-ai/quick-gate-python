@@ -156,6 +156,16 @@ def test_snapshot_preserves_symlink_identity(tmp_path: Path):
     assert first_digest != second_digest
 
 
+def test_snapshot_handles_symlink_loops(tmp_path: Path):
+    loop = tmp_path / "loop.txt"
+    loop.symlink_to("loop.txt")
+
+    digest, paths = snapshot_digest(["loop.txt"], cwd=tmp_path, exclude_paths=[tmp_path / "out"])
+
+    assert len(digest) == 64
+    assert paths == ["loop.txt"]
+
+
 def test_external_artifact_directory_does_not_pollute_cwd(tmp_path: Path):
     output_dir = tmp_path.parent / f"pygate-output-{os.getpid()}"
     try:
