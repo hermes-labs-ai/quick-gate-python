@@ -7,7 +7,7 @@ from pygate.models import Finding, GateName, Severity
 
 
 def resolve_ruff_command(commands_config: dict) -> str:
-    return commands_config.get("lint", "ruff check --output-format json --exclude .pygate .")
+    return commands_config.get("lint", "ruff check --no-cache --output-format json --exclude .pygate .")
 
 
 def _severity_for_code(code: str) -> Severity:

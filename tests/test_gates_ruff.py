@@ -9,7 +9,7 @@ from pygate.models import GateName, Severity
 
 class TestResolveRuffCommand:
     def test_default(self):
-        assert resolve_ruff_command({}) == "ruff check --output-format json --exclude .pygate ."
+        assert resolve_ruff_command({}) == "ruff check --no-cache --output-format json --exclude .pygate ."
 
     def test_custom(self):
         assert resolve_ruff_command({"lint": "ruff check src/"}) == "ruff check src/"

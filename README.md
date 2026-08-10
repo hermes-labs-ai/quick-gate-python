@@ -47,9 +47,9 @@ PyGate coordinates three existing tools:
 
 | Gate | Default command | Canary | Full |
 | --- | --- | --- | --- |
-| Lint | `ruff check --output-format json --exclude .pygate .` | Yes | Yes |
+| Lint | `ruff check --no-cache --output-format json --exclude .pygate .` | Yes | Yes |
 | Type check | `pyright --outputjson .` | Yes | Yes |
-| Tests | `pytest -q` without artifacts; JSON-report mode with an explicit output directory | No, unless configured | Yes |
+| Tests | `pytest -p no:cacheprovider -q` without artifacts; JSON-report mode with an explicit output directory | No, unless configured | Yes |
 
 The default commands scan the configured project command. `--changed-files` identifies the paths whose bytes are snapshotted and recorded in the result; it does not, by itself, rewrite the default Ruff or Pyright commands into changed-file-only analysis. Configure commands explicitly when a repository needs narrower scope.
 

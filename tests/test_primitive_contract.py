@@ -60,14 +60,18 @@ def test_spaces_in_executable_and_argument_paths(tmp_path: Path):
 
 def test_timeout_terminates_descendants(tmp_path: Path):
     marker = tmp_path / "descendant-wrote-after-timeout"
-    child_code = f"import time; time.sleep(2); Path({str(marker)!r}).write_text('bad')"
+    child_code = (
+        "import signal, time; from pathlib import Path; "
+        "signal.signal(signal.SIGTERM, lambda *_: None); "
+        f"time.sleep(0.8); Path({str(marker)!r}).write_text('bad')"
+    )
     parent_code = (
         f"import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', {child_code!r}]); time.sleep(10)"
     )
     trace = run_command([sys.executable, "-c", parent_code], cwd=tmp_path, timeout_seconds=0.2)
     assert trace.timed_out is True
     assert trace.exit_code == 1
-    time.sleep(0.4)
+    time.sleep(1)
     assert not marker.exists()
 
 
@@ -125,6 +129,16 @@ def test_evaluate_is_side_effect_free_and_binds_contract(tmp_path: Path):
     assert result.package_version
     assert result.command_versions
     assert result.elapsed_ms >= 0
+
+
+def test_default_full_evaluation_creates_no_tool_caches(tmp_path: Path):
+    (tmp_path / "sample.py").write_text("value = 1\n", encoding="utf-8")
+    before = sorted(path.relative_to(tmp_path).as_posix() for path in tmp_path.rglob("*"))
+
+    evaluate(mode=RunMode.FULL, checked_paths=["."], cwd=tmp_path)
+
+    after = sorted(path.relative_to(tmp_path).as_posix() for path in tmp_path.rglob("*"))
+    assert after == before
 
 
 def test_changed_input_is_marked_stale(tmp_path: Path):

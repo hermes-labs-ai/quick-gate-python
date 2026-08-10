@@ -76,6 +76,7 @@ def run_deterministic_gates(
             cmd,
             cwd=cwd,
             timeout_seconds=command_deadline,
+            env={"PYTHONDONTWRITEBYTECODE": "1"},
             shell=unsafe_shell,
             output_cap_bytes=output_cap_bytes,
         )

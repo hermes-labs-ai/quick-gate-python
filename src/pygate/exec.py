@@ -7,6 +7,7 @@ import subprocess
 import threading
 import time
 from collections.abc import Sequence
+from contextlib import suppress
 from pathlib import Path
 
 from pygate.fs import now_iso
@@ -31,27 +32,24 @@ def _display_command(command: str | Sequence[str], argv: list[str], shell: bool)
 
 
 def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
-    if process.poll() is not None:
-        return
-
-    try:
-        if os.name == "posix":
-            os.killpg(process.pid, signal.SIGTERM)
-        else:  # pragma: no cover - exercised on Windows CI
-            process.terminate()
-    except ProcessLookupError:
-        return
-
-    try:
-        process.wait(timeout=0.25)
-    except subprocess.TimeoutExpired:
+    if os.name == "posix":
         try:
-            if os.name == "posix":
-                os.killpg(process.pid, signal.SIGKILL)
-            else:  # pragma: no cover - exercised on Windows CI
-                process.kill()
+            os.killpg(process.pid, signal.SIGTERM)
         except ProcessLookupError:
             return
+        with suppress(subprocess.TimeoutExpired):
+            process.wait(timeout=0.25)
+        with suppress(ProcessLookupError):
+            os.killpg(process.pid, signal.SIGKILL)
+        return
+
+    if process.poll() is not None:  # pragma: no cover - exercised on Windows CI
+        return
+    try:
+        process.terminate()  # pragma: no cover - exercised on Windows CI
+        process.wait(timeout=0.25)
+    except subprocess.TimeoutExpired:  # pragma: no cover - exercised on Windows CI
+        process.kill()
 
 
 def _reader(pipe: object, limit: int, holder: dict[str, object]) -> None:
