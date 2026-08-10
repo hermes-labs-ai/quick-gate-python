@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-08
+
+### Added
+
+- Added the side-effect-free `pygate.api.evaluate` primitive with argv-safe command execution, bounded timeouts, capped output, snapshot binding, and the `gate-result/v1` contract.
+- Added explicit CLI artifact output via `--output-dir`; `pygate run` without it emits JSON without creating worktree state.
+
+### Changed
+
+- Standardized the cross-engine discriminator as `"schema": "gate-result/v1"` and aligned result/check status enums with QuickGate.js and HermesGate.
+- Made `--changed-files` optional for whole-project runs and made the composite action install its checked-out source instead of a registry version.
+
 ## [0.1.2] - 2026-05-30
 
 ### Changed
@@ -39,7 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Composite GitHub Action for CI integration
 - Structured artifacts: failures.json, run-metadata.json, agent-brief.json/md, repair-report.json, escalation.json
 
-[Unreleased]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/hermes-labs-ai/quick-gate-python/releases/tag/v0.1.0

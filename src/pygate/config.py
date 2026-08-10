@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from pygate.constants import DEFAULT_POLICY
+from pygate.constants import CONFIG_VERSION, DEFAULT_POLICY
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -44,9 +44,11 @@ def _load_toml(path: Path) -> dict:
 
 def _defaults() -> dict:
     return {
+        "config_version": CONFIG_VERSION,
         "policy": dict(DEFAULT_POLICY),
         "commands": {},
         "gates": {},
+        "allow_unsafe_shell": False,
         "source": "defaults",
     }
 
@@ -57,8 +59,10 @@ def _merge_config(user: dict, *, source: str) -> dict:
     commands = user.get("commands", {})
     gates = {**defaults["gates"], **user.get("gates", {})}
     return {
+        "config_version": user.get("config_version", CONFIG_VERSION),
         "policy": policy,
         "commands": commands,
         "gates": gates,
+        "allow_unsafe_shell": bool(user.get("allow_unsafe_shell", False)),
         "source": source,
     }

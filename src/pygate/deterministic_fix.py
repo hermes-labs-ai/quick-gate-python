@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import shlex
 from pathlib import Path
 
 from pygate.exec import run_command
@@ -48,10 +47,8 @@ def run_deterministic_prefix(*, cwd: Path, failures: FailuresPayload) -> list[di
     if not scoped_files:
         return actions
 
-    file_args = " ".join(shlex.quote(f) for f in scoped_files)
-
     # ruff check --fix (safe fixes only)
-    fix_trace = run_command(f"ruff check --fix {file_args}", cwd=cwd)
+    fix_trace = run_command(["ruff", "check", "--fix", *scoped_files], cwd=cwd)
     actions.append(
         {
             "rule_id": "RUFF_AUTOFIX",
@@ -65,7 +62,7 @@ def run_deterministic_prefix(*, cwd: Path, failures: FailuresPayload) -> list[di
     )
 
     # ruff format
-    fmt_trace = run_command(f"ruff format {file_args}", cwd=cwd)
+    fmt_trace = run_command(["ruff", "format", *scoped_files], cwd=cwd)
     actions.append(
         {
             "rule_id": "RUFF_FORMAT",

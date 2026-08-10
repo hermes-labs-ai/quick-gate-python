@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from pygate import __version__
+from pygate.api import evaluate
 from pygate.env import check_environment
 from pygate.fs import load_changed_files
 from pygate.models import RunMode
@@ -26,7 +27,21 @@ def _build_parser() -> argparse.ArgumentParser:
     # run
     run_p = sub.add_parser("run", help="Run quality gates")
     run_p.add_argument("--mode", required=True, choices=["canary", "full"], help="Gate mode")
-    run_p.add_argument("--changed-files", required=True, help="Path to changed files list")
+    run_p.add_argument(
+        "--changed-files",
+        default=None,
+        help="Optional path to a newline-delimited or JSON changed-files list",
+    )
+    run_p.add_argument(
+        "--output-dir",
+        default=None,
+        help="Write artifacts to this directory; omitted for side-effect-free JSON output",
+    )
+    run_p.add_argument(
+        "--unsafe-shell",
+        action="store_true",
+        help="Explicitly enable shell parsing for legacy command strings",
+    )
 
     # summarize
     sum_p = sub.add_parser("summarize", help="Generate agent brief from failures")
@@ -56,15 +71,34 @@ def main(argv: list[str] | None = None) -> None:
     cwd = Path.cwd()
 
     if args.command == "run":
-        changed_files_path = Path(args.changed_files)
-        if not changed_files_path.is_absolute():
-            changed_files_path = cwd / changed_files_path
-        changed_files = load_changed_files(changed_files_path)
+        changed_files = ["."]
+        if args.changed_files:
+            changed_files_path = Path(args.changed_files)
+            if not changed_files_path.is_absolute():
+                changed_files_path = cwd / changed_files_path
+            changed_files = load_changed_files(changed_files_path)
 
         mode = RunMode(args.mode)
-        result = execute_run(mode=mode, changed_files=changed_files, cwd=cwd)
+        if args.output_dir:
+            result = execute_run(
+                mode=mode,
+                changed_files=changed_files,
+                cwd=cwd,
+                output_dir=Path(args.output_dir),
+                unsafe_shell=args.unsafe_shell,
+            )
+            status = result["status"]
+        else:
+            result_model = evaluate(
+                mode=mode,
+                checked_paths=changed_files,
+                cwd=cwd,
+                unsafe_shell=args.unsafe_shell,
+            )
+            result = result_model.model_dump(mode="json", by_alias=True)
+            status = result["status"]
         print(json.dumps(result, indent=2))
-        sys.exit(0 if result["status"] == "pass" else 1)
+        sys.exit(0 if status == "pass" else 1)
 
     elif args.command == "summarize":
         input_path = args.input

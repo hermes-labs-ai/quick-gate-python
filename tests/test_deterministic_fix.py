@@ -9,6 +9,8 @@ from pygate.models import (
     GateName,
     GateResult,
     GateStatus,
+    RunMode,
+    RunStatus,
     Severity,
 )
 
@@ -60,8 +62,8 @@ class TestCollectScopedFiles:
                 )
         return FailuresPayload(
             run_id="test",
-            mode="canary",
-            status="fail",
+            mode=RunMode.CANARY,
+            status=RunStatus.FAIL,
             timestamp="2026-01-01T00:00:00Z",
             changed_files=changed_files or [],
             gates=[GateResult(name=GateName.LINT, status=GateStatus.FAIL, duration_ms=10)],
@@ -95,8 +97,8 @@ class TestRunDeterministicPrefix:
     def _make_failures_with_lint(self):
         return FailuresPayload(
             run_id="test",
-            mode="canary",
-            status="fail",
+            mode=RunMode.CANARY,
+            status=RunStatus.FAIL,
             timestamp="2026-01-01T00:00:00Z",
             changed_files=["src/foo.py"],
             gates=[GateResult(name=GateName.LINT, status=GateStatus.FAIL, duration_ms=10)],
@@ -135,8 +137,8 @@ class TestRunDeterministicPrefix:
     def test_returns_empty_when_no_lint_failure(self, tmp_path):
         failures = FailuresPayload(
             run_id="test",
-            mode="canary",
-            status="fail",
+            mode=RunMode.CANARY,
+            status=RunStatus.FAIL,
             timestamp="2026-01-01T00:00:00Z",
             changed_files=["src/foo.py"],
             gates=[GateResult(name=GateName.TYPECHECK, status=GateStatus.FAIL, duration_ms=10)],

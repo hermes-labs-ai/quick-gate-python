@@ -54,7 +54,7 @@ def _diff_snapshot(cwd: Path) -> dict[str, int]:
     if not command_exists("git"):
         return {}
     trace = run_command(
-        "git diff --numstat -- . ':(exclude).pygate' ':(exclude)__pycache__' ':(exclude).venv'",
+        ["git", "diff", "--numstat", "--", ".", ":(exclude).pygate", ":(exclude)__pycache__", ":(exclude).venv"],
         cwd=cwd,
     )
     if trace.exit_code != 0:

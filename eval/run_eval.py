@@ -5,17 +5,18 @@ PyGate real-world evaluation suite.
 Creates realistic Python project scenarios, runs pygate against each,
 and reports results in a structured format.
 """
+
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any
 
 PYGATE = "pygate"
-RESULTS: list[dict] = []
+RESULTS: list[dict[str, Any]] = []
 
 
 def run(cmd: str, cwd: str, timeout: int = 60) -> tuple[int, str, str]:
@@ -33,9 +34,15 @@ def setup_project(name: str, files: dict[str, str]) -> Path:
     return d
 
 
-def run_scenario(name: str, files: dict[str, str], changed: list[str], mode: str = "canary",
-                 expect_run: str = "pass", expect_repair: str | None = None,
-                 description: str = "") -> dict:
+def run_scenario(
+    name: str,
+    files: dict[str, str],
+    changed: list[str],
+    mode: str = "canary",
+    expect_run: str = "pass",
+    expect_repair: str | None = None,
+    description: str = "",
+) -> dict[str, Any]:
     d = setup_project(name, files)
     changed_file = d / "changed.txt"
     changed_file.write_text("\n".join(changed))
@@ -61,9 +68,13 @@ def run_scenario(name: str, files: dict[str, str], changed: list[str], mode: str
         run(f"{PYGATE} summarize --input .pygate/failures.json", str(d))
 
     # Repair (if there are failures)
-    repair_result = None
+    repair_result: dict[str, Any] | None = None
     if run_status == "fail" and expect_repair is not None:
-        exit_code, stdout, stderr = run(f"{PYGATE} repair --input .pygate/failures.json --max-attempts 3", str(d), timeout=120)
+        exit_code, stdout, stderr = run(
+            f"{PYGATE} repair --input .pygate/failures.json --max-attempts 3",
+            str(d),
+            timeout=120,
+        )
         try:
             repair_result = json.loads(stdout)
         except json.JSONDecodeError:
@@ -94,8 +105,12 @@ def run_scenario(name: str, files: dict[str, str], changed: list[str], mode: str
 
     if repair_result and "attempts" in repair_result:
         result["repair_attempts"] = [
-            {"attempt": a["attempt"], "before": a["before_findings"], "after": a["after_findings"],
-             "improved": a["improved"]}
+            {
+                "attempt": a["attempt"],
+                "before": a["before_findings"],
+                "after": a["after_findings"],
+                "improved": a["improved"],
+            }
             for a in repair_result["attempts"]
         ]
     if repair_result and "reason_code" in repair_result:
@@ -110,6 +125,7 @@ def run_scenario(name: str, files: dict[str, str], changed: list[str], mode: str
 # ============================================================
 # SCENARIOS
 # ============================================================
+
 
 def scenario_1_clean_project():
     """Clean project, all gates should pass."""
@@ -130,7 +146,9 @@ def scenario_2_unused_imports():
     return run_scenario(
         "2-unused-imports",
         {
-            "src/app.py": 'import os\nimport sys\nimport json\n\ndef greet(name: str) -> str:\n    return f"Hello, {name}"\n',
+            "src/app.py": (
+                'import os\nimport sys\nimport json\n\ndef greet(name: str) -> str:\n    return f"Hello, {name}"\n'
+            ),
             "pyproject.toml": '[project]\nname = "test"\nversion = "0.1.0"\nrequires-python = ">=3.10"\n',
         },
         changed=["src/app.py"],
@@ -146,9 +164,9 @@ def scenario_3_mixed_fixable_unfixable():
         "3-mixed-lint-type",
         {
             "src/app.py": (
-                'import os\nimport sys\n\n'
-                'def add(a: int, b: str) -> int:\n    return a + b\n\n'
-                'class Foo:\n    def bar(self) -> None:\n        return self.nonexistent()\n'
+                "import os\nimport sys\n\n"
+                "def add(a: int, b: str) -> int:\n    return a + b\n\n"
+                "class Foo:\n    def bar(self) -> None:\n        return self.nonexistent()\n"
             ),
             "pyproject.toml": '[project]\nname = "test"\nversion = "0.1.0"\nrequires-python = ">=3.10"\n',
         },
@@ -164,13 +182,7 @@ def scenario_4_formatting_only():
     return run_scenario(
         "4-format-issues",
         {
-            "src/app.py": (
-                'import  os\n'
-                'x=1\n'
-                'y =   2\n'
-                'def   greet( name:str )->str:\n'
-                '    return f"Hello, {name}"\n'
-            ),
+            "src/app.py": ('import  os\nx=1\ny =   2\ndef   greet( name:str )->str:\n    return f"Hello, {name}"\n'),
             "pyproject.toml": '[project]\nname = "test"\nversion = "0.1.0"\nrequires-python = ">=3.10"\n',
         },
         changed=["src/app.py"],
@@ -269,6 +281,7 @@ def scenario_8_large_file_many_issues():
 # RUNNER
 # ============================================================
 
+
 def main():
     scenarios = [
         scenario_1_clean_project,
@@ -304,7 +317,6 @@ def main():
                 if "escalation_reason" in result:
                     print(f"    reason: {result['escalation_reason']}")
 
-            artifacts_ok = all(result["artifacts"].values())
             missing = [k for k, v in result["artifacts"].items() if not v]
             if missing:
                 print(f"  Artifacts missing: {missing}")

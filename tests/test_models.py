@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 from pydantic import ValidationError
 
 from pygate.models import (
+    ActionScope,
     AgentBrief,
+    Confidence,
     Escalation,
     EscalationInfo,
     FailuresPayload,
@@ -70,7 +74,7 @@ class TestFailuresPayload:
         with pytest.raises(ValidationError):
             FailuresPayload(
                 run_id="run_123",
-                mode="invalid",
+                mode=cast(RunMode, "invalid"),
                 status=RunStatus.PASS,
                 timestamp="2025-01-01T00:00:00Z",
                 gates=[],
@@ -89,7 +93,7 @@ class TestAgentBrief:
                 PriorityAction(
                     finding_id="f1",
                     action="Fix it",
-                    scope="single_file",
+                    scope=ActionScope.SINGLE_FILE,
                     rationale="It's broken",
                 )
             ],
@@ -143,7 +147,7 @@ class TestSerializationRoundtrip:
                     threshold=0,
                 )
             ],
-            inferred_hints=[InferredHint(finding_id="f1", hint="check lint", confidence="low")],
+            inferred_hints=[InferredHint(finding_id="f1", hint="check lint", confidence=Confidence.LOW)],
         )
         data = p.model_dump(mode="json")
         restored = FailuresPayload(**data)

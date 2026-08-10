@@ -8,13 +8,15 @@ from pygate.models import Finding, GateName, Severity
 LONGREPR_MAX = 500
 
 
-def resolve_pytest_command(commands_config: dict, cwd: Path) -> str:
+def resolve_pytest_command(commands_config: dict, cwd: Path, *, artifact_dir: Path | None = None) -> str:
     if "test" in commands_config:
         return commands_config["test"]
-    report_path = cwd / ".pygate" / "pytest-report.json"
+    if artifact_dir is None:
+        return "pytest -p no:cacheprovider -q"
+    report_path = artifact_dir / "pytest-report.json"
     import shlex
 
-    return f"pytest --json-report --json-report-file={shlex.quote(str(report_path))} -q"
+    return f"pytest -p no:cacheprovider --json-report --json-report-file={shlex.quote(str(report_path))} -q"
 
 
 def parse_pytest_output(
