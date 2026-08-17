@@ -122,4 +122,5 @@ jobs:
           name: pygate-smoke-${{ steps.fixture.outputs.scenario }}-${{ github.run_attempt }}
           path: .pygate/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 7
