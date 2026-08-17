@@ -21,48 +21,69 @@ jobs:
           - case: pass-default
             fixture: pass
             repair: false
+            changed-files-input: false
             assert-unchanged: true
             fail-on-error: true
             expected-outcome: success
+            expected-strategy: parent-diff
             expected-gate-status: pass
             expected-status: pass
             expected-repair-status: skipped
           - case: fail-default
             fixture: fail
             repair: false
+            changed-files-input: false
             assert-unchanged: true
             fail-on-error: true
             expected-outcome: failure
+            expected-strategy: parent-diff
             expected-gate-status: fail
             expected-status: fail
             expected-repair-status: skipped
           - case: fail-observation
             fixture: fail
             repair: false
+            changed-files-input: false
             assert-unchanged: true
             fail-on-error: false
             expected-outcome: success
+            expected-strategy: parent-diff
             expected-gate-status: fail
             expected-status: fail
             expected-repair-status: skipped
           - case: repair-success
             fixture: repair
             repair: true
+            changed-files-input: false
             assert-unchanged: false
             fail-on-error: true
             expected-outcome: success
+            expected-strategy: parent-diff
             expected-gate-status: fail
             expected-status: pass
             expected-repair-status: pass
           - case: repair-escalation
             fixture: fail
             repair: true
+            changed-files-input: false
             assert-unchanged: false
             fail-on-error: true
             expected-outcome: failure
+            expected-strategy: parent-diff
             expected-gate-status: fail
             expected-status: escalated
             expected-repair-status: escalated
+          - case: changed-files-input
+            fixture: pass
+            repair: false
+            changed-files-input: true
+            assert-unchanged: true
+            fail-on-error: true
+            expected-outcome: success
+            expected-strategy: caller-supplied
+            expected-gate-status: pass
+            expected-status: pass
+            expected-repair-status: skipped
     steps:
       - name: Check out the action source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -74,6 +95,7 @@ jobs:
         shell: bash
         env:
           SCENARIO: ${{ matrix.fixture }}
+          CHANGED_FILES_INPUT: ${{ matrix.changed-files-input }}
         run: |
           action_source="$RUNNER_TEMP/pygate-action-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           fixture_staging="$(mktemp -d "$RUNNER_TEMP/pygate-action-fixture.XXXXXX")"
@@ -84,6 +106,9 @@ jobs:
             cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/pyproject.toml" "$fixture_staging/"
           fi
           cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/$SCENARIO.py" "$fixture_staging/check.py"
+          if [[ "$CHANGED_FILES_INPUT" == "true" ]]; then
+            cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/changed-files.txt" "$fixture_staging/changed-files.txt"
+          fi
           mv "$GITHUB_WORKSPACE/action-source" "$action_source"
 
           cp "$fixture_staging/pyproject.toml" "$GITHUB_WORKSPACE/pyproject.toml"
@@ -94,10 +119,13 @@ jobs:
           git -C "$GITHUB_WORKSPACE" commit --quiet -m "Initialize clean consumer fixture"
 
           cp "$fixture_staging/check.py" "$GITHUB_WORKSPACE/check.py"
+          if [[ "$CHANGED_FILES_INPUT" == "true" ]]; then
+            cp "$fixture_staging/changed-files.txt" "$GITHUB_WORKSPACE/.pygate-supplied-files.txt"
+          fi
           git -C "$GITHUB_WORKSPACE" add check.py
           git -C "$GITHUB_WORKSPACE" commit --quiet -m "Add $SCENARIO canary"
 
-          printf '/action-source\n/.pygate/\n/.pygate-changed-files.txt\n' >> "$GITHUB_WORKSPACE/.git/info/exclude"
+          printf '/action-source\n/.pygate/\n/.pygate-changed-files.txt\n/.pygate-supplied-files.txt\n' >> "$GITHUB_WORKSPACE/.git/info/exclude"
           ln -s "$action_source" "$GITHUB_WORKSPACE/action-source"
 
       - name: Prove source and consumer separation
@@ -124,6 +152,7 @@ jobs:
           mode: canary
           python-version: "3.12"
           fail-on-error: ${{ matrix.fail-on-error }}
+          changed-files: ${{ matrix.changed-files-input && '.pygate-supplied-files.txt' || '' }}
           artifact-name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
 
       - name: Run the checked-out root action with explicit repair opt-in
@@ -136,6 +165,7 @@ jobs:
           repair: "true"
           python-version: "3.12"
           fail-on-error: ${{ matrix.fail-on-error }}
+          changed-files: ${{ matrix.changed-files-input && '.pygate-supplied-files.txt' || '' }}
           artifact-name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
 
       - name: Record and assert the action outcome and declared status
@@ -143,17 +173,20 @@ jobs:
         shell: bash
         env:
           ACTUAL_OUTCOME: ${{ matrix.repair && steps.gate-repair.outcome || steps.gate-default.outcome }}
+          ACTUAL_STRATEGY: ${{ matrix.repair && steps.gate-repair.outputs.changed-files-strategy || steps.gate-default.outputs.changed-files-strategy }}
           ACTUAL_GATE_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.gate-status || steps.gate-default.outputs.gate-status }}
           ACTUAL_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.status || steps.gate-default.outputs.status }}
           ACTUAL_REPAIR_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.repair-status || steps.gate-default.outputs.repair-status }}
           EXPECTED_OUTCOME: ${{ matrix.expected-outcome }}
+          EXPECTED_STRATEGY: ${{ matrix.expected-strategy }}
           EXPECTED_GATE_STATUS: ${{ matrix.expected-gate-status }}
           EXPECTED_STATUS: ${{ matrix.expected-status }}
           EXPECTED_REPAIR_STATUS: ${{ matrix.expected-repair-status }}
         run: |
-          printf 'Expected action outcome: %s\nActual action outcome: %s\nExpected gate status: %s\nDeclared gate status: %s\nExpected final status: %s\nDeclared final status: %s\nExpected repair status: %s\nDeclared repair status: %s\n' \
-            "$EXPECTED_OUTCOME" "$ACTUAL_OUTCOME" "$EXPECTED_GATE_STATUS" "$ACTUAL_GATE_STATUS" "$EXPECTED_STATUS" "$ACTUAL_STATUS" "$EXPECTED_REPAIR_STATUS" "$ACTUAL_REPAIR_STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
+          printf 'Expected action outcome: %s\nActual action outcome: %s\nExpected changed-files strategy: %s\nActual changed-files strategy: %s\nExpected gate status: %s\nDeclared gate status: %s\nExpected final status: %s\nDeclared final status: %s\nExpected repair status: %s\nDeclared repair status: %s\n' \
+            "$EXPECTED_OUTCOME" "$ACTUAL_OUTCOME" "$EXPECTED_STRATEGY" "$ACTUAL_STRATEGY" "$EXPECTED_GATE_STATUS" "$ACTUAL_GATE_STATUS" "$EXPECTED_STATUS" "$ACTUAL_STATUS" "$EXPECTED_REPAIR_STATUS" "$ACTUAL_REPAIR_STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
           test "$ACTUAL_OUTCOME" = "$EXPECTED_OUTCOME"
+          test "$ACTUAL_STRATEGY" = "$EXPECTED_STRATEGY"
           test "$ACTUAL_GATE_STATUS" = "$EXPECTED_GATE_STATUS"
           test "$ACTUAL_STATUS" = "$EXPECTED_STATUS"
           test "$ACTUAL_REPAIR_STATUS" = "$EXPECTED_REPAIR_STATUS"
@@ -192,3 +225,94 @@ jobs:
           test -f artifact/gate-result.json
           test -f artifact/failures.json
           jq -e '.schema == "gate-result/v1"' artifact/gate-result.json >/dev/null
+
+  contract-controls:
+    if: always()
+    needs: clean-consumer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the action source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: action-source
+          persist-credentials: false
+
+      - name: Assert early input and history controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          action_file=action-source/action.yml
+          validate_line=$(awk '/name: Validate action inputs/{print NR; exit}' "$action_file")
+          setup_line=$(awk '/name: Set up Python/{print NR; exit}' "$action_file")
+          test "$validate_line" -lt "$setup_line"
+          grep -F 'Invalid boolean input' "$action_file"
+          grep -F 'PYGATE_MAX_ATTEMPTS' "$action_file"
+          grep -F 'git ls-files --cached --' "$action_file"
+          grep -F 'parent-diff' "$action_file"
+          grep -F 'first-or-shallow-tracked-files' "$action_file"
+          if grep -F 'HEAD~1' "$action_file"; then
+            echo 'invalid HEAD~1 fallback remains' >&2
+            exit 1
+          fi
+          test "$(tr -d '\r\n' < action-source/tests/action-fixture/changed-files.txt)" = 'provided.py'
+
+      - name: Exercise first-commit and shallow tracked-file primitives
+        shell: bash
+        run: |
+          set -euo pipefail
+          first_repo="$(mktemp -d)"
+          git init --quiet "$first_repo"
+          git -C "$first_repo" config user.name "PyGate controls"
+          git -C "$first_repo" config user.email "pygate-controls@example.invalid"
+          printf 'first\n' > "$first_repo/first.txt"
+          git -C "$first_repo" add first.txt
+          git -C "$first_repo" commit --quiet -m first
+          test "$(git -C "$first_repo" rev-list --parents -n 1 HEAD | awk '{print NF}')" = 1
+          git -C "$first_repo" ls-files --cached -- > "$first_repo/paths.txt"
+          grep -Fx 'first.txt' "$first_repo/paths.txt"
+
+          shallow_repo="$(mktemp -d)"
+          git clone --quiet --depth 1 "file://$first_repo" "$shallow_repo"
+          test "$(git -C "$shallow_repo" rev-list --parents -n 1 HEAD | awk '{print NF}')" = 1
+          git -C "$shallow_repo" ls-files --cached -- > "$shallow_repo/paths.txt"
+          grep -Fx 'first.txt' "$shallow_repo/paths.txt"
+
+      - name: Exercise changed-files semantic validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          action_file=action-source/action.yml
+          validator_script="$RUNNER_TEMP/validate-changed-files.sh"
+          {
+            echo 'set -euo pipefail'
+            awk '
+              /# BEGIN PYGATE_CHANGED_FILES_VALIDATOR/ { capture=1; next }
+              /# END PYGATE_CHANGED_FILES_VALIDATOR/ { capture=0 }
+              capture { sub(/^        /, ""); print }
+            ' "$action_file"
+          } > "$validator_script"
+          chmod +x "$validator_script"
+
+          printf '[]\n' > "$RUNNER_TEMP/empty-list.txt"
+          if PYGATE_CHANGED_FILES="$RUNNER_TEMP/empty-list.txt" bash "$validator_script"; then
+            echo 'empty JSON list was accepted' >&2
+            exit 1
+          fi
+
+          printf '  \n\n' > "$RUNNER_TEMP/whitespace.txt"
+          if PYGATE_CHANGED_FILES="$RUNNER_TEMP/whitespace.txt" bash "$validator_script"; then
+            echo 'whitespace-only changed-files input was accepted' >&2
+            exit 1
+          fi
+
+          printf 'provided.py\n\n' > "$RUNNER_TEMP/newline.txt"
+          PYGATE_CHANGED_FILES="$RUNNER_TEMP/newline.txt" bash "$validator_script"
+
+          printf '["provided.py", 7, ""]\n' > "$RUNNER_TEMP/json.txt"
+          PYGATE_CHANGED_FILES="$RUNNER_TEMP/json.txt" bash "$validator_script"
+
+          printf '[\n' > "$RUNNER_TEMP/malformed.json"
+          if PYGATE_CHANGED_FILES="$RUNNER_TEMP/malformed.json" bash "$validator_script"; then
+            echo 'malformed JSON changed-files input was accepted' >&2
+            exit 1
+          fi

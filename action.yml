@@ -22,6 +22,9 @@ inputs:
   post-comment:
     description: "Post findings as a PR comment; when true, requires pull-requests: write"
     default: "false"
+  changed-files:
+    description: "Optional path to a newline-delimited or JSON changed-files list"
+    default: ""
   artifact-name:
     description: "Name for the uploaded PyGate artifact bundle"
     default: "pygate-artifacts"
@@ -42,14 +45,102 @@ outputs:
   repair-status:
     description: "Repair result: pass, escalated, or skipped"
     value: ${{ steps.repair.outputs.status || steps.repair-skip.outputs.status }}
+  changed-files-strategy:
+    description: "Changed-file source: caller-supplied, pull-request diff, push diff, parent diff, or tracked-file fallback"
+    value: ${{ steps.changes.outputs.strategy }}
 
 runs:
   using: "composite"
   steps:
+    - name: Validate action inputs
+      id: validate
+      shell: bash
+      env:
+        PYGATE_MODE: ${{ inputs.mode }}
+        PYGATE_REPAIR: ${{ inputs.repair }}
+        PYGATE_POST_COMMENT: ${{ inputs.post-comment }}
+        PYGATE_FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
+        PYGATE_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
+        PYGATE_CHANGED_FILES: ${{ inputs.changed-files }}
+      run: |
+        set -euo pipefail
+
+        case "$PYGATE_MODE" in
+          canary|full)
+            ;;
+          *)
+            echo "::error::Invalid mode: $PYGATE_MODE (must be canary or full)"
+            exit 2
+            ;;
+        esac
+
+        for input_name in PYGATE_REPAIR PYGATE_POST_COMMENT PYGATE_FAIL_ON_ERROR; do
+          input_value="${!input_name}"
+          case "$input_value" in
+            true|false)
+              ;;
+            *)
+              echo "::error::Invalid boolean input $input_name: $input_value (must be true or false)"
+              exit 2
+              ;;
+          esac
+        done
+
+        if [[ ! "$PYGATE_MAX_ATTEMPTS" =~ ^[1-9][0-9]*$ ]] || (( PYGATE_MAX_ATTEMPTS > 10 )); then
+          echo "::error::Invalid max-attempts: $PYGATE_MAX_ATTEMPTS (must be a positive integer no greater than 10)"
+          exit 2
+        fi
+
+        if [[ -n "$PYGATE_CHANGED_FILES" ]]; then
+          if [[ ! -f "$PYGATE_CHANGED_FILES" ]]; then
+            echo "::error::changed-files path does not exist: $PYGATE_CHANGED_FILES"
+            exit 2
+          fi
+          if [[ ! -s "$PYGATE_CHANGED_FILES" ]]; then
+            echo "::error::changed-files file is empty: $PYGATE_CHANGED_FILES"
+            exit 2
+          fi
+        fi
+
     - name: Set up Python
       uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
       with:
         python-version: ${{ inputs.python-version }}
+
+    - name: Validate changed-files content
+      if: inputs.changed-files != ''
+      shell: bash
+      env:
+        PYGATE_CHANGED_FILES: ${{ inputs.changed-files }}
+      run: |
+        set -euo pipefail
+        # BEGIN PYGATE_CHANGED_FILES_VALIDATOR
+        python - "$PYGATE_CHANGED_FILES" <<'PY'
+        import json
+        import sys
+        from pathlib import Path
+
+        path = Path(sys.argv[1])
+        content = path.read_text(encoding="utf-8").strip()
+        if not content:
+            raise SystemExit("changed-files content contains no usable paths")
+
+        if content.startswith("["):
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as exc:
+                raise SystemExit(f"changed-files JSON is malformed: {exc}") from exc
+            if not isinstance(parsed, list):
+                raise SystemExit("changed-files JSON must be a list")
+            changed_files = [item for item in parsed if isinstance(item, str) and item.strip()]
+        else:
+            changed_files = [line.strip() for line in content.splitlines() if line.strip()]
+
+        if not changed_files:
+            raise SystemExit("changed-files content contains no usable paths")
+        print(f"Validated {len(changed_files)} changed-file path(s)")
+        PY
+        # END PYGATE_CHANGED_FILES_VALIDATOR
 
     - name: Install checked-out PyGate action source
       shell: bash
@@ -60,12 +151,76 @@ runs:
     - name: Detect changed files
       id: changes
       shell: bash
+      env:
+        CHANGED_FILES_INPUT: ${{ inputs.changed-files }}
+        EVENT_NAME: ${{ github.event_name }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        PUSH_BEFORE_SHA: ${{ github.event.before }}
+        CURRENT_SHA: ${{ github.sha }}
       run: |
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
-          git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} > .pygate-changed-files.txt
-        else
-          git diff --name-only HEAD~1 > .pygate-changed-files.txt
+        set -euo pipefail
+        changed_file_path=".pygate-changed-files.txt"
+        strategy=""
+
+        tracked_files_fallback() {
+          if git ls-files --cached -- > "$changed_file_path" && [[ -s "$changed_file_path" ]]; then
+            strategy="$1"
+            return 0
+          fi
+          echo "::error::Changed-file discovery could not produce a tracked path list"
+          exit 2
+        }
+
+        valid_commit() {
+          local revision="$1"
+          [[ -n "$revision" ]] && git rev-parse --verify --quiet --end-of-options "${revision}^{commit}" >/dev/null 2>&1
+        }
+
+        write_diff() {
+          local left="$1"
+          local right="$2"
+          local label="$3"
+          if git diff --name-only --no-renames --end-of-options "$left" "$right" -- > "$changed_file_path" && [[ -s "$changed_file_path" ]]; then
+            strategy="$label"
+          else
+            tracked_files_fallback "${label}-tracked-files-fallback"
+          fi
+        }
+
+        current_revision="$CURRENT_SHA"
+        if ! valid_commit "$current_revision"; then
+          current_revision="$(git rev-parse --verify --quiet --end-of-options 'HEAD^{commit}' || true)"
         fi
+        parent_revision=""
+        if valid_commit "$current_revision"; then
+          parent_revision="$(git rev-list --parents -n 1 --end-of-options "$current_revision" | awk 'NF > 1 { print $2 }')"
+        fi
+
+        if [[ -n "$CHANGED_FILES_INPUT" ]]; then
+          if [[ "$CHANGED_FILES_INPUT" != "$changed_file_path" ]]; then
+            cp -- "$CHANGED_FILES_INPUT" "$changed_file_path"
+          fi
+          strategy="caller-supplied"
+        elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+          if valid_commit "$PR_BASE_SHA" && valid_commit "$CURRENT_SHA"; then
+            write_diff "$PR_BASE_SHA" "$CURRENT_SHA" "pull-request-diff"
+          else
+            tracked_files_fallback "pull-request-tracked-files-fallback"
+          fi
+        elif valid_commit "$PUSH_BEFORE_SHA" && valid_commit "$CURRENT_SHA"; then
+          write_diff "$PUSH_BEFORE_SHA" "$CURRENT_SHA" "push-diff"
+        elif valid_commit "$parent_revision"; then
+          write_diff "$parent_revision" "$current_revision" "parent-diff"
+        else
+          tracked_files_fallback "first-or-shallow-tracked-files"
+        fi
+
+        if [[ ! -s "$changed_file_path" ]]; then
+          echo "::error::Changed-file discovery produced no usable path list"
+          exit 2
+        fi
+        echo "strategy=$strategy" >> "$GITHUB_OUTPUT"
+        echo "Changed-file strategy: $strategy" >> "$GITHUB_STEP_SUMMARY"
         echo "Changed files:"
         cat .pygate-changed-files.txt
 
