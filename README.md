@@ -212,7 +212,7 @@ This first example is read-only and blocking: it grants only `contents: read`, l
 The root action installs PyGate from its own checkout, then installs Ruff and Pyright, detects changed files, writes run artifacts to `.pygate/`, optionally attempts repair, optionally posts a pull-request comment, and uploads the artifact directory. Canary mode skips tests by default. Full mode is caller-owned: before the action step, install the project and test dependencies into the same Python version selected by the action, for example:
 
 ~~~yaml
-- uses: actions/setup-python@v5
+- uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
   with:
     python-version: "3.12"
 - run: python -m pip install -e ".[dev]"
