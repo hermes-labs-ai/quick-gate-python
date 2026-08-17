@@ -74,6 +74,7 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 [tool.pyright]
 pythonVersion = "3.10"
 typeCheckingMode = "basic"
+exclude = ["tests/action-fixture/fail.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
