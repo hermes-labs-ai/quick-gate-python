@@ -208,7 +208,17 @@ jobs:
           post-comment: "true"
 ~~~
 
-The action installs PyGate from the action checkout itself, then installs Ruff and Pyright, detects changed files, writes run artifacts to `.pygate/`, optionally attempts repair, optionally posts a pull-request comment, and uploads the artifact directory. This prevents the action implementation and the invoked CLI from drifting across releases. Canary mode skips tests by default. To use full mode with the default test command, make `pytest` and `pytest-json-report` available in the action environment; the composite action does not install those two packages itself.
+The action installs PyGate from the action checkout itself, then installs Ruff and Pyright, detects changed files, writes run artifacts to `.pygate/`, optionally attempts repair, optionally posts a pull-request comment, and uploads the artifact directory. This prevents the action implementation and the invoked CLI from drifting across releases. Canary mode skips tests by default. Full mode is caller-owned: before the action step, install the project and test dependencies into the same Python version selected by the action, for example:
+
+~~~yaml
+- uses: actions/setup-python@v5
+  with:
+    python-version: "3.12"
+- run: python -m pip install -e ".[dev]"
+- run: python -m pip install pytest pytest-json-report
+~~~
+
+The action does not provide an install-command, execute package installation for full mode, or infer project dependencies. It preflights `pytest` and `pytest-json-report` after setup and reports an actionable error before changed-file discovery when either is unavailable.
 
 PyGate never grants merge authority. A workflow still decides whether a failed, timed-out, or escalated job blocks a pull request, and any comment or artifact should be treated as untrusted command output before security-sensitive rendering.
 

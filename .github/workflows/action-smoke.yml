@@ -84,6 +84,35 @@ jobs:
             expected-gate-status: pass
             expected-status: pass
             expected-repair-status: skipped
+          - case: canary-no-pytest
+            fixture: pass
+            repair: false
+            changed-files-input: false
+            remove-test-deps: true
+            assert-unchanged: true
+            fail-on-error: true
+            expected-outcome: success
+            expected-strategy: parent-diff
+            expected-gate-status: pass
+            expected-status: pass
+            expected-repair-status: skipped
+            expected-dependency-status: not-required
+            expected-dependency-classification: canary-does-not-run-tests
+          - case: full-success
+            fixture: pass
+            mode: full
+            repair: false
+            changed-files-input: false
+            preinstall-test-deps: true
+            assert-unchanged: true
+            fail-on-error: true
+            expected-outcome: success
+            expected-strategy: parent-diff
+            expected-gate-status: pass
+            expected-status: pass
+            expected-repair-status: skipped
+            expected-dependency-status: ready
+            expected-dependency-classification: caller-owned-dependencies
     steps:
       - name: Check out the action source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,11 +120,19 @@ jobs:
           path: action-source
           persist-credentials: false
 
+      - name: Set up caller Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
       - name: Build a clean consumer workspace
         shell: bash
         env:
           SCENARIO: ${{ matrix.fixture }}
           CHANGED_FILES_INPUT: ${{ matrix.changed-files-input }}
+          MODE: ${{ matrix.mode || 'canary' }}
+          PREINSTALL_TEST_DEPS: ${{ matrix.preinstall-test-deps || 'false' }}
+          REMOVE_TEST_DEPS: ${{ matrix.remove-test-deps || 'false' }}
         run: |
           action_source="$RUNNER_TEMP/pygate-action-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           fixture_staging="$(mktemp -d "$RUNNER_TEMP/pygate-action-fixture.XXXXXX")"
@@ -106,6 +143,9 @@ jobs:
             cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/pyproject.toml" "$fixture_staging/"
           fi
           cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/$SCENARIO.py" "$fixture_staging/check.py"
+          if [[ "$MODE" == "full" ]]; then
+            printf 'from check import answer\n\n\ndef test_full_mode_fixture():\n    assert answer() == 42\n' > "$fixture_staging/test_full.py"
+          fi
           if [[ "$CHANGED_FILES_INPUT" == "true" ]]; then
             cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/changed-files.txt" "$fixture_staging/changed-files.txt"
           fi
@@ -119,11 +159,34 @@ jobs:
           git -C "$GITHUB_WORKSPACE" commit --quiet -m "Initialize clean consumer fixture"
 
           cp "$fixture_staging/check.py" "$GITHUB_WORKSPACE/check.py"
+          if [[ "$MODE" == "full" ]]; then
+            cp "$fixture_staging/test_full.py" "$GITHUB_WORKSPACE/test_full.py"
+          fi
           if [[ "$CHANGED_FILES_INPUT" == "true" ]]; then
             cp "$fixture_staging/changed-files.txt" "$GITHUB_WORKSPACE/.pygate-supplied-files.txt"
           fi
           git -C "$GITHUB_WORKSPACE" add check.py
+          if [[ "$MODE" == "full" ]]; then
+            git -C "$GITHUB_WORKSPACE" add test_full.py
+          fi
           git -C "$GITHUB_WORKSPACE" commit --quiet -m "Add $SCENARIO canary"
+
+          if [[ "$PREINSTALL_TEST_DEPS" == "true" ]]; then
+            python -m pip install pytest pytest-json-report
+          fi
+          if [[ "$REMOVE_TEST_DEPS" == "true" ]]; then
+            export PYTHONNOUSERSITE=1
+            echo "PYTHONNOUSERSITE=1" >> "$GITHUB_ENV"
+            python -m pip uninstall --yes pytest pytest-json-report >/dev/null 2>&1 || true
+            if python -c 'import pytest'; then
+              echo 'pytest remained installed after removal' >&2
+              exit 1
+            fi
+            if python -c 'import pytest_jsonreport'; then
+              echo 'pytest-json-report remained installed after removal' >&2
+              exit 1
+            fi
+          fi
 
           printf '/action-source\n/.pygate/\n/.pygate-changed-files.txt\n/.pygate-supplied-files.txt\n' >> "$GITHUB_WORKSPACE/.git/info/exclude"
           ln -s "$action_source" "$GITHUB_WORKSPACE/action-source"
@@ -149,7 +212,7 @@ jobs:
         continue-on-error: true
         uses: ./action-source
         with:
-          mode: canary
+          mode: ${{ matrix.mode || 'canary' }}
           python-version: "3.12"
           fail-on-error: ${{ matrix.fail-on-error }}
           changed-files: ${{ matrix.changed-files-input && '.pygate-supplied-files.txt' || '' }}
@@ -161,7 +224,7 @@ jobs:
         continue-on-error: true
         uses: ./action-source
         with:
-          mode: canary
+          mode: ${{ matrix.mode || 'canary' }}
           repair: "true"
           python-version: "3.12"
           fail-on-error: ${{ matrix.fail-on-error }}
@@ -177,19 +240,25 @@ jobs:
           ACTUAL_GATE_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.gate-status || steps.gate-default.outputs.gate-status }}
           ACTUAL_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.status || steps.gate-default.outputs.status }}
           ACTUAL_REPAIR_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.repair-status || steps.gate-default.outputs.repair-status }}
+          ACTUAL_DEPENDENCY_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.full-mode-dependency-status || steps.gate-default.outputs.full-mode-dependency-status }}
+          ACTUAL_DEPENDENCY_CLASSIFICATION: ${{ matrix.repair && steps.gate-repair.outputs.full-mode-dependency-classification || steps.gate-default.outputs.full-mode-dependency-classification }}
           EXPECTED_OUTCOME: ${{ matrix.expected-outcome }}
           EXPECTED_STRATEGY: ${{ matrix.expected-strategy }}
           EXPECTED_GATE_STATUS: ${{ matrix.expected-gate-status }}
           EXPECTED_STATUS: ${{ matrix.expected-status }}
           EXPECTED_REPAIR_STATUS: ${{ matrix.expected-repair-status }}
+          EXPECTED_DEPENDENCY_STATUS: ${{ matrix.expected-dependency-status || 'not-required' }}
+          EXPECTED_DEPENDENCY_CLASSIFICATION: ${{ matrix.expected-dependency-classification || 'canary-does-not-run-tests' }}
         run: |
-          printf 'Expected action outcome: %s\nActual action outcome: %s\nExpected changed-files strategy: %s\nActual changed-files strategy: %s\nExpected gate status: %s\nDeclared gate status: %s\nExpected final status: %s\nDeclared final status: %s\nExpected repair status: %s\nDeclared repair status: %s\n' \
-            "$EXPECTED_OUTCOME" "$ACTUAL_OUTCOME" "$EXPECTED_STRATEGY" "$ACTUAL_STRATEGY" "$EXPECTED_GATE_STATUS" "$ACTUAL_GATE_STATUS" "$EXPECTED_STATUS" "$ACTUAL_STATUS" "$EXPECTED_REPAIR_STATUS" "$ACTUAL_REPAIR_STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
+          printf 'Expected action outcome: %s\nActual action outcome: %s\nExpected changed-files strategy: %s\nActual changed-files strategy: %s\nExpected gate status: %s\nDeclared gate status: %s\nExpected final status: %s\nDeclared final status: %s\nExpected repair status: %s\nDeclared repair status: %s\nExpected dependency status: %s\nDeclared dependency status: %s\nExpected dependency classification: %s\nDeclared dependency classification: %s\n' \
+            "$EXPECTED_OUTCOME" "$ACTUAL_OUTCOME" "$EXPECTED_STRATEGY" "$ACTUAL_STRATEGY" "$EXPECTED_GATE_STATUS" "$ACTUAL_GATE_STATUS" "$EXPECTED_STATUS" "$ACTUAL_STATUS" "$EXPECTED_REPAIR_STATUS" "$ACTUAL_REPAIR_STATUS" "$EXPECTED_DEPENDENCY_STATUS" "$ACTUAL_DEPENDENCY_STATUS" "$EXPECTED_DEPENDENCY_CLASSIFICATION" "$ACTUAL_DEPENDENCY_CLASSIFICATION" | tee -a "$GITHUB_STEP_SUMMARY"
           test "$ACTUAL_OUTCOME" = "$EXPECTED_OUTCOME"
           test "$ACTUAL_STRATEGY" = "$EXPECTED_STRATEGY"
           test "$ACTUAL_GATE_STATUS" = "$EXPECTED_GATE_STATUS"
           test "$ACTUAL_STATUS" = "$EXPECTED_STATUS"
           test "$ACTUAL_REPAIR_STATUS" = "$EXPECTED_REPAIR_STATUS"
+          test "$ACTUAL_DEPENDENCY_STATUS" = "$EXPECTED_DEPENDENCY_STATUS"
+          test "$ACTUAL_DEPENDENCY_CLASSIFICATION" = "$EXPECTED_DEPENDENCY_CLASSIFICATION"
           test -f .pygate/gate-result.json
           test -f .pygate/failures.json
           jq -e '.schema == "gate-result/v1" and (.status | IN("pass", "fail", "timeout", "error"))' .pygate/gate-result.json >/dev/null
@@ -198,6 +267,63 @@ jobs:
             git diff --quiet
             git diff --cached --quiet
           fi
+
+  full-mode-missing-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the action source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: action-source
+          persist-credentials: false
+
+      - name: Set up caller Python without test dependencies
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Remove test dependencies for deterministic preflight control
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONNOUSERSITE=1
+          echo "PYTHONNOUSERSITE=1" >> "$GITHUB_ENV"
+          python -m pip uninstall --yes pytest pytest-json-report >/dev/null 2>&1 || true
+          if python -c 'import pytest'; then
+            echo 'pytest remained installed after removal' >&2
+            exit 1
+          fi
+          if python -c 'import pytest_jsonreport'; then
+            echo 'pytest-json-report remained installed after removal' >&2
+            exit 1
+          fi
+
+      - name: Run full mode without caller-installed test dependencies
+        id: full
+        continue-on-error: true
+        uses: ./action-source
+        with:
+          mode: full
+          python-version: "3.12"
+          fail-on-error: "true"
+          artifact-name: pygate-action-full-mode-missing-${{ github.run_attempt }}
+
+      - name: Assert actionable missing-dependency failure
+        if: always()
+        shell: bash
+        env:
+          ACTUAL_OUTCOME: ${{ steps.full.outcome }}
+          ACTUAL_STATUS: ${{ steps.full.outputs.status }}
+          ACTUAL_DEPENDENCY_STATUS: ${{ steps.full.outputs.full-mode-dependency-status }}
+          ACTUAL_DEPENDENCY_CLASSIFICATION: ${{ steps.full.outputs.full-mode-dependency-classification }}
+        run: |
+          set -euo pipefail
+          printf 'Outcome: %s\nFinal status: %s\nDependency status: %s\nDependency classification: %s\n' \
+            "$ACTUAL_OUTCOME" "$ACTUAL_STATUS" "$ACTUAL_DEPENDENCY_STATUS" "$ACTUAL_DEPENDENCY_CLASSIFICATION" | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$ACTUAL_OUTCOME" = failure
+          test "$ACTUAL_STATUS" = fail
+          test "$ACTUAL_DEPENDENCY_STATUS" = missing
+          test "$ACTUAL_DEPENDENCY_CLASSIFICATION" = missing-test-dependency
 
   verify-action-artifacts:
     if: always()
@@ -212,6 +338,8 @@ jobs:
           - fail-observation
           - repair-success
           - repair-escalation
+          - canary-no-pytest
+          - full-success
     steps:
       - name: Download action-owned artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -250,6 +378,21 @@ jobs:
           grep -F 'git ls-files --cached --' "$action_file"
           grep -F 'parent-diff' "$action_file"
           grep -F 'first-or-shallow-tracked-files' "$action_file"
+          install_line=$(awk '/name: Install checked-out PyGate action source/{print NR; exit}' "$action_file")
+          preflight_line=$(awk '/name: Preflight full-mode test dependencies/{print NR; exit}' "$action_file")
+          changes_line=$(awk '/name: Detect changed files/{print NR; exit}' "$action_file")
+          test "$install_line" -lt "$preflight_line"
+          test "$preflight_line" -lt "$changes_line"
+          grep -F 'caller-owned-dependencies' "$action_file"
+          grep -F 'pytest_jsonreport' "$action_file"
+          grep -F 'inputs.mode == '\''full'\''' "$action_file"
+          grep -F 'case: full-success' action-source/.github/workflows/action-smoke.yml
+          grep -F 'case: canary-no-pytest' action-source/.github/workflows/action-smoke.yml
+          grep -F 'full-mode-missing-deps:' action-source/.github/workflows/action-smoke.yml
+          if grep -E 'install-command|eval |bash -c' "$action_file"; then
+            echo 'unsupported install-command, eval, or bash -c contract remains' >&2
+            exit 1
+          fi
           if grep -F 'HEAD~1' "$action_file"; then
             echo 'invalid HEAD~1 fallback remains' >&2
             exit 1

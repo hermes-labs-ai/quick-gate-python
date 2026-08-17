@@ -48,6 +48,12 @@ outputs:
   changed-files-strategy:
     description: "Changed-file source: caller-supplied, pull-request diff, push diff, parent diff, or tracked-file fallback"
     value: ${{ steps.changes.outputs.strategy }}
+  full-mode-dependency-status:
+    description: "Full-mode dependency preflight: ready, missing, or not-required"
+    value: ${{ steps.full-deps.outputs.status || steps.full-deps-skip.outputs.status }}
+  full-mode-dependency-classification:
+    description: "Full-mode dependency diagnostic classification"
+    value: ${{ steps.full-deps.outputs.classification || steps.full-deps-skip.outputs.classification }}
 
 runs:
   using: "composite"
@@ -147,6 +153,32 @@ runs:
       run: |
         ACTION_ROOT="$GITHUB_ACTION_PATH"
         python -m pip install "$ACTION_ROOT" ruff pyright
+
+    - name: Preflight full-mode test dependencies
+      id: full-deps
+      if: inputs.mode == 'full'
+      shell: bash
+      run: |
+        set -euo pipefail
+        missing=()
+        python -c 'import pytest' >/dev/null 2>&1 || missing+=(pytest)
+        python -c 'import pytest_jsonreport' >/dev/null 2>&1 || missing+=(pytest-json-report)
+        if (( ${#missing[@]} > 0 )); then
+          echo "status=missing" >> "$GITHUB_OUTPUT"
+          echo "classification=missing-test-dependency" >> "$GITHUB_OUTPUT"
+          echo "::error::Full mode requires caller-installed project/test dependencies: ${missing[*]}. Install them before invoking PyGate, for example: python -m pip install -e '.[dev]' (or pytest pytest-json-report)."
+          exit 2
+        fi
+        echo "status=ready" >> "$GITHUB_OUTPUT"
+        echo "classification=caller-owned-dependencies" >> "$GITHUB_OUTPUT"
+
+    - name: Mark full-mode dependency preflight not required
+      id: full-deps-skip
+      if: inputs.mode != 'full'
+      shell: bash
+      run: |
+        echo "status=not-required" >> "$GITHUB_OUTPUT"
+        echo "classification=canary-does-not-run-tests" >> "$GITHUB_OUTPUT"
 
     - name: Detect changed files
       id: changes
