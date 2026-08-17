@@ -6,15 +6,6 @@ on:
       - main
       - "codex/pyg-mp-*"
   workflow_dispatch:
-    inputs:
-      scenario:
-        description: Fixture outcome to exercise
-        required: true
-        default: pass
-        type: choice
-        options:
-          - pass
-          - fail
 
 permissions:
   contents: read
@@ -22,6 +13,25 @@ permissions:
 jobs:
   clean-consumer:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case: pass-default
+            fixture: pass
+            observation: false
+            expected-outcome: success
+            expected-status: pass
+          - case: fail-default
+            fixture: fail
+            observation: false
+            expected-outcome: failure
+            expected-status: fail
+          - case: fail-observation
+            fixture: fail
+            observation: true
+            expected-outcome: success
+            expected-status: fail
     steps:
       - name: Check out the action source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -29,34 +39,10 @@ jobs:
           path: action-source
           persist-credentials: false
 
-      - name: Select fixture scenario
-        id: fixture
-        shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          GIT_REF: ${{ github.ref }}
-          REQUESTED_SCENARIO: ${{ inputs.scenario }}
-        run: |
-          # The action currently owns a fixed artifact name, so each workflow
-          # run exercises exactly one scenario without cross-job collisions.
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            scenario="$REQUESTED_SCENARIO"
-          elif [[ "$GIT_REF" == "refs/heads/main" ]]; then
-            scenario="fail"
-          else
-            scenario="pass"
-          fi
-
-          if [[ "$scenario" != "pass" && "$scenario" != "fail" ]]; then
-            echo "Unsupported smoke scenario: $scenario" >&2
-            exit 1
-          fi
-          echo "scenario=$scenario" >> "$GITHUB_OUTPUT"
-
       - name: Build a clean consumer workspace
         shell: bash
         env:
-          SCENARIO: ${{ steps.fixture.outputs.scenario }}
+          SCENARIO: ${{ matrix.fixture }}
         run: |
           action_source="$RUNNER_TEMP/pygate-action-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           fixture_staging="$(mktemp -d "$RUNNER_TEMP/pygate-action-fixture.XXXXXX")"
@@ -94,8 +80,10 @@ jobs:
           test -f "$action_path/action.yml"
           test -z "$(git status --porcelain)"
 
-      - name: Run the checked-out root action
-        id: gate
+      - name: Run the checked-out root action with defaults
+        id: gate-default
+        if: ${{ !matrix.observation }}
+        continue-on-error: true
         uses: ./action-source
         with:
           mode: canary
@@ -103,15 +91,30 @@ jobs:
           python-version: "3.12"
           post-comment: "false"
 
-      - name: Record and assert the declared status
+      - name: Run the checked-out root action in observation mode
+        id: gate-observation
+        if: ${{ matrix.observation }}
+        continue-on-error: true
+        uses: ./action-source
+        with:
+          mode: canary
+          repair: "false"
+          python-version: "3.12"
+          post-comment: "false"
+          fail-on-error: "false"
+
+      - name: Record and assert the action outcome and declared status
         if: always()
         shell: bash
         env:
-          ACTUAL_STATUS: ${{ steps.gate.outputs.status }}
-          EXPECTED_STATUS: ${{ steps.fixture.outputs.scenario }}
+          ACTUAL_OUTCOME: ${{ matrix.observation && steps.gate-observation.outcome || steps.gate-default.outcome }}
+          ACTUAL_STATUS: ${{ matrix.observation && steps.gate-observation.outputs.status || steps.gate-default.outputs.status }}
+          EXPECTED_OUTCOME: ${{ matrix.expected-outcome }}
+          EXPECTED_STATUS: ${{ matrix.expected-status }}
         run: |
-          printf 'Expected PyGate status: %s\nDeclared PyGate status: %s\n' \
-            "$EXPECTED_STATUS" "$ACTUAL_STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
+          printf 'Expected action outcome: %s\nActual action outcome: %s\nExpected PyGate status: %s\nDeclared PyGate status: %s\n' \
+            "$EXPECTED_OUTCOME" "$ACTUAL_OUTCOME" "$EXPECTED_STATUS" "$ACTUAL_STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$ACTUAL_OUTCOME" = "$EXPECTED_OUTCOME"
           test "$ACTUAL_STATUS" = "$EXPECTED_STATUS"
           test -f .pygate/gate-result.json
 
@@ -119,7 +122,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: pygate-smoke-${{ steps.fixture.outputs.scenario }}-${{ github.run_attempt }}
+          name: pygate-smoke-${{ matrix.case }}-${{ github.run_attempt }}
           path: .pygate/
           if-no-files-found: error
           include-hidden-files: true
