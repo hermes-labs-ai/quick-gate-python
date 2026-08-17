@@ -19,19 +19,44 @@ jobs:
         include:
           - case: pass-default
             fixture: pass
-            observation: false
+            repair: false
+            fail-on-error: true
             expected-outcome: success
+            expected-gate-status: pass
             expected-status: pass
+            expected-repair-status: skipped
           - case: fail-default
             fixture: fail
-            observation: false
+            repair: false
+            fail-on-error: true
             expected-outcome: failure
+            expected-gate-status: fail
             expected-status: fail
+            expected-repair-status: skipped
           - case: fail-observation
             fixture: fail
-            observation: true
+            repair: false
+            fail-on-error: false
             expected-outcome: success
+            expected-gate-status: fail
             expected-status: fail
+            expected-repair-status: skipped
+          - case: repair-success
+            fixture: repair
+            repair: true
+            fail-on-error: true
+            expected-outcome: success
+            expected-gate-status: fail
+            expected-status: pass
+            expected-repair-status: pass
+          - case: repair-escalation
+            fixture: fail
+            repair: true
+            fail-on-error: true
+            expected-outcome: failure
+            expected-gate-status: fail
+            expected-status: escalated
+            expected-repair-status: escalated
     steps:
       - name: Check out the action source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,7 +72,11 @@ jobs:
           action_source="$RUNNER_TEMP/pygate-action-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           fixture_staging="$(mktemp -d "$RUNNER_TEMP/pygate-action-fixture.XXXXXX")"
 
-          cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/pyproject.toml" "$fixture_staging/"
+          if [[ "$SCENARIO" == "repair" ]]; then
+            cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/repair-pyproject.toml" "$fixture_staging/pyproject.toml"
+          else
+            cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/pyproject.toml" "$fixture_staging/"
+          fi
           cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/$SCENARIO.py" "$fixture_staging/check.py"
           mv "$GITHUB_WORKSPACE/action-source" "$action_source"
 
@@ -80,50 +109,64 @@ jobs:
           test -f "$action_path/action.yml"
           test -z "$(git status --porcelain)"
 
-      - name: Run the checked-out root action with defaults
-        id: gate-default
-        if: ${{ !matrix.observation }}
+      - name: Run the checked-out root action
+        id: gate
         continue-on-error: true
         uses: ./action-source
         with:
           mode: canary
-          repair: "false"
+          repair: ${{ matrix.repair }}
           python-version: "3.12"
           post-comment: "false"
-
-      - name: Run the checked-out root action in observation mode
-        id: gate-observation
-        if: ${{ matrix.observation }}
-        continue-on-error: true
-        uses: ./action-source
-        with:
-          mode: canary
-          repair: "false"
-          python-version: "3.12"
-          post-comment: "false"
-          fail-on-error: "false"
+          fail-on-error: ${{ matrix.fail-on-error }}
+          artifact-name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
 
       - name: Record and assert the action outcome and declared status
         if: always()
         shell: bash
         env:
-          ACTUAL_OUTCOME: ${{ matrix.observation && steps.gate-observation.outcome || steps.gate-default.outcome }}
-          ACTUAL_STATUS: ${{ matrix.observation && steps.gate-observation.outputs.status || steps.gate-default.outputs.status }}
+          ACTUAL_OUTCOME: ${{ steps.gate.outcome }}
+          ACTUAL_GATE_STATUS: ${{ steps.gate.outputs.gate-status }}
+          ACTUAL_STATUS: ${{ steps.gate.outputs.status }}
+          ACTUAL_REPAIR_STATUS: ${{ steps.gate.outputs.repair-status }}
           EXPECTED_OUTCOME: ${{ matrix.expected-outcome }}
+          EXPECTED_GATE_STATUS: ${{ matrix.expected-gate-status }}
           EXPECTED_STATUS: ${{ matrix.expected-status }}
+          EXPECTED_REPAIR_STATUS: ${{ matrix.expected-repair-status }}
         run: |
-          printf 'Expected action outcome: %s\nActual action outcome: %s\nExpected PyGate status: %s\nDeclared PyGate status: %s\n' \
-            "$EXPECTED_OUTCOME" "$ACTUAL_OUTCOME" "$EXPECTED_STATUS" "$ACTUAL_STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
+          printf 'Expected action outcome: %s\nActual action outcome: %s\nExpected gate status: %s\nDeclared gate status: %s\nExpected final status: %s\nDeclared final status: %s\nExpected repair status: %s\nDeclared repair status: %s\n' \
+            "$EXPECTED_OUTCOME" "$ACTUAL_OUTCOME" "$EXPECTED_GATE_STATUS" "$ACTUAL_GATE_STATUS" "$EXPECTED_STATUS" "$ACTUAL_STATUS" "$EXPECTED_REPAIR_STATUS" "$ACTUAL_REPAIR_STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
           test "$ACTUAL_OUTCOME" = "$EXPECTED_OUTCOME"
+          test "$ACTUAL_GATE_STATUS" = "$EXPECTED_GATE_STATUS"
           test "$ACTUAL_STATUS" = "$EXPECTED_STATUS"
+          test "$ACTUAL_REPAIR_STATUS" = "$EXPECTED_REPAIR_STATUS"
           test -f .pygate/gate-result.json
+          test -f .pygate/failures.json
+          jq -e '.schema == "gate-result/v1" and (.status | IN("pass", "fail", "timeout", "error"))' .pygate/gate-result.json >/dev/null
 
-      - name: Upload scenario evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+  verify-action-artifacts:
+    if: always()
+    needs: clean-consumer
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        case:
+          - pass-default
+          - fail-default
+          - fail-observation
+          - repair-success
+          - repair-escalation
+    steps:
+      - name: Download action-owned artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: pygate-smoke-${{ matrix.case }}-${{ github.run_attempt }}
-          path: .pygate/
-          if-no-files-found: error
-          include-hidden-files: true
-          retention-days: 7
+          name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
+          path: artifact
+
+      - name: Assert hidden action evidence is present
+        shell: bash
+        run: |
+          test -f artifact/.pygate/gate-result.json
+          test -f artifact/.pygate/failures.json
+          jq -e '.schema == "gate-result/v1"' artifact/.pygate/gate-result.json >/dev/null
