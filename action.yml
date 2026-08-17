@@ -1,0 +1,141 @@
+name: "PyGate Quality Gates"
+description: "Run deterministic Python quality gates with bounded repair"
+author: "Hermes Labs"
+
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  mode:
+    description: "Gate mode: canary (lint+typecheck, tests optional) or full (all gates)"
+    default: "canary"
+  repair:
+    description: "Run bounded repair after failures"
+    default: "true"
+  max-attempts:
+    description: "Maximum repair attempts before escalation"
+    default: "3"
+  python-version:
+    description: "Python version to use"
+    default: "3.12"
+  post-comment:
+    description: "Post findings as PR comment"
+    default: "true"
+
+outputs:
+  status:
+    description: "Overall gate result: pass, fail, or escalated"
+    value: ${{ steps.gate.outputs.status }}
+  failures-json:
+    description: "Path to .pygate/failures.json"
+    value: ${{ steps.gate.outputs.failures_json }}
+  repair-status:
+    description: "Repair result: pass, escalated, or skipped"
+    value: ${{ steps.repair.outputs.status || steps.repair-skip.outputs.status }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install checked-out PyGate action source
+      shell: bash
+      run: |
+        ACTION_ROOT="$GITHUB_ACTION_PATH"
+        python -m pip install "$ACTION_ROOT" ruff pyright
+
+    - name: Detect changed files
+      id: changes
+      shell: bash
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} > .pygate-changed-files.txt
+        else
+          git diff --name-only HEAD~1 > .pygate-changed-files.txt
+        fi
+        echo "Changed files:"
+        cat .pygate-changed-files.txt
+
+    - name: Run quality gates
+      id: gate
+      shell: bash
+      env:
+        PYGATE_MODE: ${{ inputs.mode }}
+      run: |
+        if [[ "$PYGATE_MODE" != "canary" && "$PYGATE_MODE" != "full" ]]; then
+          echo "::error::Invalid mode: $PYGATE_MODE (must be canary or full)"
+          exit 1
+        fi
+        set +e
+        pygate run --mode "$PYGATE_MODE" --changed-files .pygate-changed-files.txt --output-dir .pygate
+        EXIT_CODE=$?
+        set -e
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "status=pass" >> "$GITHUB_OUTPUT"
+        else
+          echo "status=fail" >> "$GITHUB_OUTPUT"
+        fi
+        if [ -f .pygate/failures.json ]; then
+          echo "failures_json=.pygate/failures.json" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Run bounded repair
+      id: repair
+      if: steps.gate.outputs.status == 'fail' && inputs.repair == 'true'
+      shell: bash
+      env:
+        PYGATE_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
+      run: |
+        set +e
+        pygate repair --input .pygate/failures.json --max-attempts "$PYGATE_MAX_ATTEMPTS"
+        EXIT_CODE=$?
+        set -e
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "status=pass" >> "$GITHUB_OUTPUT"
+        elif [ $EXIT_CODE -eq 2 ]; then
+          echo "status=escalated" >> "$GITHUB_OUTPUT"
+        else
+          echo "status=fail" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Set repair status to skipped
+      id: repair-skip
+      if: steps.gate.outputs.status != 'fail' || inputs.repair != 'true'
+      shell: bash
+      run: echo "status=skipped" >> "$GITHUB_OUTPUT"
+
+    - name: Generate agent brief
+      if: steps.gate.outputs.status == 'fail'
+      shell: bash
+      run: pygate summarize --input .pygate/failures.json
+
+    - name: Post PR comment
+      if: github.event_name == 'pull_request' && steps.gate.outputs.status == 'fail' && inputs.post-comment == 'true'
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+      with:
+        script: |
+          const fs = require('fs');
+          let body = '## PyGate Quality Gate Results\n\n';
+          if (fs.existsSync('.pygate/agent-brief.md')) {
+            body += fs.readFileSync('.pygate/agent-brief.md', 'utf8');
+          } else {
+            body += 'Gate failed. See artifacts for details.';
+          }
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: body,
+          });
+
+    - name: Upload artifacts
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: pygate-artifacts
+        path: .pygate/
+        if-no-files-found: ignore
