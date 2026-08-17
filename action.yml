@@ -107,6 +107,41 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
+    - name: Validate changed-files content
+      if: inputs.changed-files != ''
+      shell: bash
+      env:
+        PYGATE_CHANGED_FILES: ${{ inputs.changed-files }}
+      run: |
+        set -euo pipefail
+        # BEGIN PYGATE_CHANGED_FILES_VALIDATOR
+        python - "$PYGATE_CHANGED_FILES" <<'PY'
+        import json
+        import sys
+        from pathlib import Path
+
+        path = Path(sys.argv[1])
+        content = path.read_text(encoding="utf-8").strip()
+        if not content:
+            raise SystemExit("changed-files content contains no usable paths")
+
+        if content.startswith("["):
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as exc:
+                raise SystemExit(f"changed-files JSON is malformed: {exc}") from exc
+            if not isinstance(parsed, list):
+                raise SystemExit("changed-files JSON must be a list")
+            changed_files = [item for item in parsed if isinstance(item, str) and item.strip()]
+        else:
+            changed_files = [line.strip() for line in content.splitlines() if line.strip()]
+
+        if not changed_files:
+            raise SystemExit("changed-files content contains no usable paths")
+        print(f"Validated {len(changed_files)} changed-file path(s)")
+        PY
+        # END PYGATE_CHANGED_FILES_VALIDATOR
+
     - name: Install checked-out PyGate action source
       shell: bash
       run: |

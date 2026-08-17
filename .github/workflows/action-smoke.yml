@@ -276,3 +276,43 @@ jobs:
           test "$(git -C "$shallow_repo" rev-list --parents -n 1 HEAD | awk '{print NF}')" = 1
           git -C "$shallow_repo" ls-files --cached -- > "$shallow_repo/paths.txt"
           grep -Fx 'first.txt' "$shallow_repo/paths.txt"
+
+      - name: Exercise changed-files semantic validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          action_file=action-source/action.yml
+          validator_script="$RUNNER_TEMP/validate-changed-files.sh"
+          {
+            echo 'set -euo pipefail'
+            awk '
+              /# BEGIN PYGATE_CHANGED_FILES_VALIDATOR/ { capture=1; next }
+              /# END PYGATE_CHANGED_FILES_VALIDATOR/ { capture=0 }
+              capture { sub(/^        /, ""); print }
+            ' "$action_file"
+          } > "$validator_script"
+          chmod +x "$validator_script"
+
+          printf '[]\n' > "$RUNNER_TEMP/empty-list.txt"
+          if PYGATE_CHANGED_FILES="$RUNNER_TEMP/empty-list.txt" bash "$validator_script"; then
+            echo 'empty JSON list was accepted' >&2
+            exit 1
+          fi
+
+          printf '  \n\n' > "$RUNNER_TEMP/whitespace.txt"
+          if PYGATE_CHANGED_FILES="$RUNNER_TEMP/whitespace.txt" bash "$validator_script"; then
+            echo 'whitespace-only changed-files input was accepted' >&2
+            exit 1
+          fi
+
+          printf 'provided.py\n\n' > "$RUNNER_TEMP/newline.txt"
+          PYGATE_CHANGED_FILES="$RUNNER_TEMP/newline.txt" bash "$validator_script"
+
+          printf '["provided.py", 7, ""]\n' > "$RUNNER_TEMP/json.txt"
+          PYGATE_CHANGED_FILES="$RUNNER_TEMP/json.txt" bash "$validator_script"
+
+          printf '[\n' > "$RUNNER_TEMP/malformed.json"
+          if PYGATE_CHANGED_FILES="$RUNNER_TEMP/malformed.json" bash "$validator_script"; then
+            echo 'malformed JSON changed-files input was accepted' >&2
+            exit 1
+          fi
