@@ -22,13 +22,19 @@ inputs:
   post-comment:
     description: "Post findings as PR comment"
     default: "true"
+  artifact-name:
+    description: "Name for the uploaded PyGate artifact bundle"
+    default: "pygate-artifacts"
   fail-on-error:
     description: "Fail the action when quality gates fail or repair does not pass; set to false for observation-only reporting"
     default: "true"
 
 outputs:
   status:
-    description: "Overall gate result: pass, fail, or escalated"
+    description: "Final result after the quality gate and optional repair: pass, fail, or escalated"
+    value: ${{ steps.final.outputs.status }}
+  gate-status:
+    description: "Initial quality-gate result before optional repair: pass or fail"
     value: ${{ steps.gate.outputs.status }}
   failures-json:
     description: "Path to .pygate/failures.json"
@@ -116,6 +122,7 @@ runs:
             echo "status=escalated" >> "$GITHUB_OUTPUT"
             ;;
           *)
+            echo "status=fail" >> "$GITHUB_OUTPUT"
             echo "::error::PyGate repair command failed with infrastructure exit code $EXIT_CODE"
             exit "$EXIT_CODE"
             ;;
@@ -152,20 +159,81 @@ runs:
           });
 
     - name: Upload artifacts
+      id: artifacts
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
-        name: pygate-artifacts
+        name: ${{ inputs.artifact-name }}
         path: .pygate/
+        include-hidden-files: true
         if-no-files-found: ignore
+
+    - name: Set final action status
+      id: final
+      if: always()
+      shell: bash
+      env:
+        GATE_STATUS: ${{ steps.gate.outputs.status }}
+        GATE_OUTCOME: ${{ steps.gate.outcome }}
+        REPAIR_STATUS: ${{ steps.repair.outputs.status || steps.repair-skip.outputs.status }}
+        REPAIR_OUTCOME: ${{ steps.repair.outcome }}
+        ARTIFACT_OUTCOME: ${{ steps.artifacts.outcome }}
+      run: |
+        infrastructure_failure=false
+        final_status=fail
+
+        case "$GATE_STATUS" in
+          pass|fail)
+            ;;
+          *)
+            infrastructure_failure=true
+            ;;
+        esac
+
+        if [[ "$GATE_OUTCOME" != "success" ]]; then
+          infrastructure_failure=true
+        fi
+        if [[ "$REPAIR_OUTCOME" == "failure" ]]; then
+          infrastructure_failure=true
+        fi
+        if [[ "$ARTIFACT_OUTCOME" != "success" ]]; then
+          infrastructure_failure=true
+        fi
+
+        if [[ "$infrastructure_failure" == "false" ]]; then
+          case "$GATE_STATUS:$REPAIR_STATUS" in
+            pass:skipped|pass:pass)
+              final_status=pass
+              ;;
+            fail:pass)
+              final_status=pass
+              ;;
+            fail:escalated)
+              final_status=escalated
+              ;;
+            fail:fail|fail:skipped)
+              final_status=fail
+              ;;
+            *)
+              infrastructure_failure=true
+              ;;
+          esac
+        fi
+
+        echo "status=$final_status" >> "$GITHUB_OUTPUT"
+        echo "infrastructure_failure=$infrastructure_failure" >> "$GITHUB_OUTPUT"
+        echo "Final action status: $final_status"
+        echo "Initial gate status: ${GATE_STATUS:-unavailable}"
+        echo "Repair status: ${REPAIR_STATUS:-unavailable}"
+        echo "Infrastructure failure: $infrastructure_failure"
 
     - name: Enforce action outcome
       if: always()
       shell: bash
       env:
         FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
-        GATE_STATUS: ${{ steps.gate.outputs.status }}
-        REPAIR_STATUS: ${{ steps.repair.outputs.status || steps.repair-skip.outputs.status }}
+        FINAL_STATUS: ${{ steps.final.outputs.status }}
+        INFRASTRUCTURE_FAILURE: ${{ steps.final.outputs.infrastructure_failure }}
       run: |
         case "$FAIL_ON_ERROR" in
           true|false)
@@ -176,28 +244,24 @@ runs:
             ;;
         esac
 
-        case "$GATE_STATUS" in
-          pass|fail)
+        case "$FINAL_STATUS" in
+          pass|fail|escalated)
             ;;
           *)
-            echo "::error::Quality gate did not produce a valid status"
+            echo "::error::Final action status was not produced"
             exit 2
             ;;
         esac
 
-        case "$REPAIR_STATUS" in
-          pass|fail|escalated|skipped)
-            ;;
-          *)
-            echo "::error::Repair did not produce a valid status"
-            exit 2
-            ;;
-        esac
+        if [[ "$INFRASTRUCTURE_FAILURE" == "true" ]]; then
+          echo "::error::PyGate action failed before producing a trustworthy quality result"
+          exit 1
+        fi
 
         if [[ "$FAIL_ON_ERROR" == "false" ]]; then
           exit 0
         fi
-        if [[ "$GATE_STATUS" == "fail" || "$REPAIR_STATUS" == "fail" || "$REPAIR_STATUS" == "escalated" ]]; then
+        if [[ "$FINAL_STATUS" == "fail" || "$FINAL_STATUS" == "escalated" ]]; then
           echo "::error::PyGate quality gates did not pass"
           exit 1
         fi

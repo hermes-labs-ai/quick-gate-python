@@ -3,7 +3,7 @@ target-version = "py312"
 exclude = [".pygate", "action-source"]
 
 [tool.ruff.lint]
-ignore = ["RUF022"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.pyright]
 pythonVersion = "3.12"
