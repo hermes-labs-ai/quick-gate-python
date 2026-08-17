@@ -22,6 +22,9 @@ inputs:
   post-comment:
     description: "Post findings as PR comment"
     default: "true"
+  fail-on-error:
+    description: "Fail the action when quality gates fail or repair does not pass; set to false for observation-only reporting"
+    default: "true"
 
 outputs:
   status:
@@ -70,18 +73,29 @@ runs:
           echo "::error::Invalid mode: $PYGATE_MODE (must be canary or full)"
           exit 1
         fi
+        rm -f .pygate/gate-result.json .pygate/failures.json
         set +e
         pygate run --mode "$PYGATE_MODE" --changed-files .pygate-changed-files.txt --output-dir .pygate
         EXIT_CODE=$?
         set -e
-        if [ $EXIT_CODE -eq 0 ]; then
-          echo "status=pass" >> "$GITHUB_OUTPUT"
-        else
-          echo "status=fail" >> "$GITHUB_OUTPUT"
-        fi
-        if [ -f .pygate/failures.json ]; then
-          echo "failures_json=.pygate/failures.json" >> "$GITHUB_OUTPUT"
-        fi
+        case "$EXIT_CODE" in
+          0|1)
+            if [ ! -f .pygate/gate-result.json ] || [ ! -f .pygate/failures.json ]; then
+              echo "::error::PyGate exited $EXIT_CODE without writing its required result artifacts"
+              exit 2
+            fi
+            if [ "$EXIT_CODE" -eq 0 ]; then
+              echo "status=pass" >> "$GITHUB_OUTPUT"
+            else
+              echo "status=fail" >> "$GITHUB_OUTPUT"
+            fi
+            ;;
+          *)
+            echo "::error::PyGate command failed with infrastructure exit code $EXIT_CODE"
+            exit "$EXIT_CODE"
+            ;;
+        esac
+        echo "failures_json=.pygate/failures.json" >> "$GITHUB_OUTPUT"
 
     - name: Run bounded repair
       id: repair
@@ -94,13 +108,18 @@ runs:
         pygate repair --input .pygate/failures.json --max-attempts "$PYGATE_MAX_ATTEMPTS"
         EXIT_CODE=$?
         set -e
-        if [ $EXIT_CODE -eq 0 ]; then
-          echo "status=pass" >> "$GITHUB_OUTPUT"
-        elif [ $EXIT_CODE -eq 2 ]; then
-          echo "status=escalated" >> "$GITHUB_OUTPUT"
-        else
-          echo "status=fail" >> "$GITHUB_OUTPUT"
-        fi
+        case "$EXIT_CODE" in
+          0)
+            echo "status=pass" >> "$GITHUB_OUTPUT"
+            ;;
+          2)
+            echo "status=escalated" >> "$GITHUB_OUTPUT"
+            ;;
+          *)
+            echo "::error::PyGate repair command failed with infrastructure exit code $EXIT_CODE"
+            exit "$EXIT_CODE"
+            ;;
+        esac
 
     - name: Set repair status to skipped
       id: repair-skip
@@ -139,3 +158,47 @@ runs:
         name: pygate-artifacts
         path: .pygate/
         if-no-files-found: ignore
+
+    - name: Enforce action outcome
+      if: always()
+      shell: bash
+      env:
+        FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
+        GATE_STATUS: ${{ steps.gate.outputs.status }}
+        REPAIR_STATUS: ${{ steps.repair.outputs.status || steps.repair-skip.outputs.status }}
+      run: |
+        case "$FAIL_ON_ERROR" in
+          true|false)
+            ;;
+          *)
+            echo "::error::Invalid fail-on-error value: $FAIL_ON_ERROR (must be true or false)"
+            exit 2
+            ;;
+        esac
+
+        case "$GATE_STATUS" in
+          pass|fail)
+            ;;
+          *)
+            echo "::error::Quality gate did not produce a valid status"
+            exit 2
+            ;;
+        esac
+
+        case "$REPAIR_STATUS" in
+          pass|fail|escalated|skipped)
+            ;;
+          *)
+            echo "::error::Repair did not produce a valid status"
+            exit 2
+            ;;
+        esac
+
+        if [[ "$FAIL_ON_ERROR" == "false" ]]; then
+          exit 0
+        fi
+        if [[ "$GATE_STATUS" == "fail" || "$REPAIR_STATUS" == "fail" || "$REPAIR_STATUS" == "escalated" ]]; then
+          echo "::error::PyGate quality gates did not pass"
+          exit 1
+        fi
+        exit 0
