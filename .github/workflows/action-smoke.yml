@@ -168,6 +168,6 @@ jobs:
       - name: Assert hidden action evidence is present
         shell: bash
         run: |
-          test -f artifact/.pygate/gate-result.json
-          test -f artifact/.pygate/failures.json
-          jq -e '.schema == "gate-result/v1"' artifact/.pygate/gate-result.json >/dev/null
+          test -f artifact/gate-result.json
+          test -f artifact/failures.json
+          jq -e '.schema == "gate-result/v1"' artifact/gate-result.json >/dev/null
