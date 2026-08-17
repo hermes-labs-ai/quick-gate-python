@@ -43,6 +43,7 @@ PyGate executes external tools (`ruff`, `pyright`, `pytest`) via subprocess. Sec
 ### GitHub Actions Composite Action
 
 - **Input validation**: The composite action validates the `mode` input against an allowlist (`canary` or `full`) before passing it to the CLI. The `max-attempts` input is passed through to the CLI's argparse, which validates it as an integer; negative values are not rejected at the action layer. All inputs are passed via environment variables rather than string interpolation to prevent injection.
+- **Action defaults**: The root Marketplace action defaults to `repair: false` and `post-comment: false`. Enabling repair is an explicit opt-in that may modify eligible files in the consumer workspace; enabling comments is an explicit opt-in that requires `pull-requests: write`.
 - **Supply chain pinning**: All third-party actions in CI workflows and the composite action are pinned to SHA digests with version comments (e.g., `actions/checkout@<sha> # v4`). This prevents compromised upstream tags from injecting malicious code.
 - **Permissions**: The composite action requires only `contents: read` by default. The optional PR comment feature requires `pull-requests: write`. No other permissions are requested.
 - **Artifact trust**: Artifacts uploaded to `.pygate/` contain command output (stdout/stderr) from the target project. Downstream consumers should treat these as untrusted data and validate before rendering in security-sensitive contexts.

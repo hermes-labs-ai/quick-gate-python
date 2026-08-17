@@ -21,6 +21,7 @@ jobs:
           - case: pass-default
             fixture: pass
             repair: false
+            assert-unchanged: true
             fail-on-error: true
             expected-outcome: success
             expected-gate-status: pass
@@ -29,6 +30,7 @@ jobs:
           - case: fail-default
             fixture: fail
             repair: false
+            assert-unchanged: true
             fail-on-error: true
             expected-outcome: failure
             expected-gate-status: fail
@@ -37,6 +39,7 @@ jobs:
           - case: fail-observation
             fixture: fail
             repair: false
+            assert-unchanged: true
             fail-on-error: false
             expected-outcome: success
             expected-gate-status: fail
@@ -45,6 +48,7 @@ jobs:
           - case: repair-success
             fixture: repair
             repair: true
+            assert-unchanged: false
             fail-on-error: true
             expected-outcome: success
             expected-gate-status: fail
@@ -53,6 +57,7 @@ jobs:
           - case: repair-escalation
             fixture: fail
             repair: true
+            assert-unchanged: false
             fail-on-error: true
             expected-outcome: failure
             expected-gate-status: fail
@@ -92,7 +97,7 @@ jobs:
           git -C "$GITHUB_WORKSPACE" add check.py
           git -C "$GITHUB_WORKSPACE" commit --quiet -m "Add $SCENARIO canary"
 
-          echo "/action-source" >> "$GITHUB_WORKSPACE/.git/info/exclude"
+          printf '/action-source\n/.pygate/\n/.pygate-changed-files.txt\n' >> "$GITHUB_WORKSPACE/.git/info/exclude"
           ln -s "$action_source" "$GITHUB_WORKSPACE/action-source"
 
       - name: Prove source and consumer separation
@@ -110,15 +115,26 @@ jobs:
           test -f "$action_path/action.yml"
           test -z "$(git status --porcelain)"
 
-      - name: Run the checked-out root action
-        id: gate
+      - name: Run the checked-out root action with safe defaults
+        id: gate-default
+        if: ${{ !matrix.repair }}
         continue-on-error: true
         uses: ./action-source
         with:
           mode: canary
-          repair: ${{ matrix.repair }}
           python-version: "3.12"
-          post-comment: "false"
+          fail-on-error: ${{ matrix.fail-on-error }}
+          artifact-name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
+
+      - name: Run the checked-out root action with explicit repair opt-in
+        id: gate-repair
+        if: ${{ matrix.repair }}
+        continue-on-error: true
+        uses: ./action-source
+        with:
+          mode: canary
+          repair: "true"
+          python-version: "3.12"
           fail-on-error: ${{ matrix.fail-on-error }}
           artifact-name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
 
@@ -126,10 +142,10 @@ jobs:
         if: always()
         shell: bash
         env:
-          ACTUAL_OUTCOME: ${{ steps.gate.outcome }}
-          ACTUAL_GATE_STATUS: ${{ steps.gate.outputs.gate-status }}
-          ACTUAL_STATUS: ${{ steps.gate.outputs.status }}
-          ACTUAL_REPAIR_STATUS: ${{ steps.gate.outputs.repair-status }}
+          ACTUAL_OUTCOME: ${{ matrix.repair && steps.gate-repair.outcome || steps.gate-default.outcome }}
+          ACTUAL_GATE_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.gate-status || steps.gate-default.outputs.gate-status }}
+          ACTUAL_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.status || steps.gate-default.outputs.status }}
+          ACTUAL_REPAIR_STATUS: ${{ matrix.repair && steps.gate-repair.outputs.repair-status || steps.gate-default.outputs.repair-status }}
           EXPECTED_OUTCOME: ${{ matrix.expected-outcome }}
           EXPECTED_GATE_STATUS: ${{ matrix.expected-gate-status }}
           EXPECTED_STATUS: ${{ matrix.expected-status }}
@@ -144,6 +160,11 @@ jobs:
           test -f .pygate/gate-result.json
           test -f .pygate/failures.json
           jq -e '.schema == "gate-result/v1" and (.status | IN("pass", "fail", "timeout", "error"))' .pygate/gate-result.json >/dev/null
+          if [[ "${{ matrix.assert-unchanged }}" == "true" ]]; then
+            test -z "$(git status --porcelain --untracked-files=all)"
+            git diff --quiet
+            git diff --cached --quiet
+          fi
 
   verify-action-artifacts:
     if: always()

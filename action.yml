@@ -11,8 +11,8 @@ inputs:
     description: "Gate mode: canary (lint+typecheck, tests optional) or full (all gates)"
     default: "canary"
   repair:
-    description: "Run bounded repair after failures"
-    default: "true"
+    description: "Run bounded repair after failures; when true, may mutate files in the consumer workspace"
+    default: "false"
   max-attempts:
     description: "Maximum repair attempts before escalation"
     default: "3"
@@ -20,8 +20,8 @@ inputs:
     description: "Python version to use"
     default: "3.12"
   post-comment:
-    description: "Post findings as PR comment"
-    default: "true"
+    description: "Post findings as a PR comment; when true, requires pull-requests: write"
+    default: "false"
   artifact-name:
     description: "Name for the uploaded PyGate artifact bundle"
     default: "pygate-artifacts"
