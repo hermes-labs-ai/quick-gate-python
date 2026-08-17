@@ -144,7 +144,7 @@ jobs:
           fi
           cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/$SCENARIO.py" "$fixture_staging/check.py"
           if [[ "$MODE" == "full" ]]; then
-            printf 'def test_full_mode_fixture():\n    assert 42 == 42\n' > "$fixture_staging/test_full.py"
+            printf 'from check import answer\n\n\ndef test_full_mode_fixture():\n    assert answer() == 42\n' > "$fixture_staging/test_full.py"
           fi
           if [[ "$CHANGED_FILES_INPUT" == "true" ]]; then
             cp "$GITHUB_WORKSPACE/action-source/tests/action-fixture/changed-files.txt" "$fixture_staging/changed-files.txt"
@@ -386,9 +386,9 @@ jobs:
           grep -F 'caller-owned-dependencies' "$action_file"
           grep -F 'pytest_jsonreport' "$action_file"
           grep -F 'inputs.mode == '\''full'\''' "$action_file"
-          grep -F 'case: full-success' .github/workflows/action-smoke.yml
-          grep -F 'case: canary-no-pytest' .github/workflows/action-smoke.yml
-          grep -F 'full-mode-missing-deps:' .github/workflows/action-smoke.yml
+          grep -F 'case: full-success' action-source/.github/workflows/action-smoke.yml
+          grep -F 'case: canary-no-pytest' action-source/.github/workflows/action-smoke.yml
+          grep -F 'full-mode-missing-deps:' action-source/.github/workflows/action-smoke.yml
           if grep -E 'install-command|eval |bash -c' "$action_file"; then
             echo 'unsupported install-command, eval, or bash -c contract remains' >&2
             exit 1

@@ -10,3 +10,6 @@ pythonVersion = "3.12"
 typeCheckingMode = "basic"
 include = ["check.py"]
 exclude = [".pygate", "action-source"]
+
+[tool.pytest.ini_options]
+testpaths = ["test_full.py"]
