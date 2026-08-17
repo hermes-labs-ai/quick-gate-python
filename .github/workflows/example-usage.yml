@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write  # Required for PR comments
 
 jobs:
   quality-gates:
@@ -18,10 +17,8 @@ jobs:
         with:
           fetch-depth: 0  # Required for changed file detection
 
-      - uses: hermes-labs-ai/quick-gate-python/.github/actions/pygate@main
+      - uses: hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e
         with:
-          mode: canary          # or "full" to include tests
-          repair: "true"        # attempt auto-repair on failures
-          max-attempts: 3
+          mode: canary          # or "full" to include caller-installed tests
           python-version: "3.12"
-          post-comment: "true"  # post findings as PR comment
+          fail-on-error: "true"
