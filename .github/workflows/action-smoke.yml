@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "codex/pyg-mp-*"
+      - "agent/pygate-*"
   workflow_dispatch:
 
 permissions:
