@@ -179,10 +179,12 @@ The same keys can be used in a standalone `pygate.toml` with `[policy]`, `[comma
 
 ## GitHub Actions
 
-The repository ships a composite action at [`.github/actions/pygate/action.yml`](.github/actions/pygate/action.yml) and a copyable example at [`.github/workflows/example-usage.yml`](.github/workflows/example-usage.yml):
+The repository ships the root Marketplace action at [`action.yml`](action.yml) and a copyable example at [`.github/workflows/example-usage.yml`](.github/workflows/example-usage.yml). Pin the root action to this currently audited immutable commit:
+
+`hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e`
 
 ~~~yaml
-name: PyGate
+name: "Example: PyGate Quality Gates"
 
 on:
   pull_request:
@@ -190,28 +192,27 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write # only needed when post-comment is true
 
 jobs:
   quality-gates:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: hermes-labs-ai/quick-gate-python/.github/actions/pygate@main
+      - uses: hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e
         with:
           mode: canary
-          repair: "true"
-          max-attempts: 3
           python-version: "3.12"
-          post-comment: "true"
+          fail-on-error: "true"
 ~~~
 
-The action installs PyGate from the action checkout itself, then installs Ruff and Pyright, detects changed files, writes run artifacts to `.pygate/`, optionally attempts repair, optionally posts a pull-request comment, and uploads the artifact directory. This prevents the action implementation and the invoked CLI from drifting across releases. Canary mode skips tests by default. Full mode is caller-owned: before the action step, install the project and test dependencies into the same Python version selected by the action, for example:
+This first example is read-only and blocking: it grants only `contents: read`, leaves repair and comments disabled, and fails the job when the final action status is `fail` or `escalated`.
+
+The root action installs PyGate from its own checkout, then installs Ruff and Pyright, detects changed files, writes run artifacts to `.pygate/`, optionally attempts repair, optionally posts a pull-request comment, and uploads the artifact directory. Canary mode skips tests by default. Full mode is caller-owned: before the action step, install the project and test dependencies into the same Python version selected by the action, for example:
 
 ~~~yaml
-- uses: actions/setup-python@v5
+- uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
   with:
     python-version: "3.12"
 - run: python -m pip install -e ".[dev]"
@@ -219,6 +220,58 @@ The action installs PyGate from the action checkout itself, then installs Ruff a
 ~~~
 
 The action does not provide an install-command, execute package installation for full mode, or infer project dependencies. It preflights `pytest` and `pytest-json-report` after setup and reports an actionable error before changed-file discovery when either is unavailable.
+
+### Optional pull-request comments
+
+To post a failure summary on a pull request, add `pull-requests: write` beside `contents: read` and set `post-comment: "true"` on the root action:
+
+~~~yaml
+permissions:
+  contents: read
+  pull-requests: write
+
+steps:
+  - uses: hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e
+    with:
+      mode: canary
+      python-version: "3.12"
+      post-comment: "true"
+~~~
+
+Keep `repair: "false"` unless workspace mutation is explicitly intended. Pull requests from forks commonly receive a read-only `GITHUB_TOKEN`, so comment posting may be unavailable there; the read-only example above remains the safe baseline.
+
+### Root action contract
+
+The root action accepts these inputs:
+
+| Input | Default | Contract |
+| --- | --- | --- |
+| `mode` | `canary` | `canary` runs Ruff and Pyright; `full` also runs pytest. |
+| `repair` | `false` | When `true`, permits bounded Ruff repair that may mutate eligible consumer files. |
+| `max-attempts` | `3` | Positive integer from `1` through `10`; applies to repair. |
+| `python-version` | `3.12` | Python version selected for the action and its preflight. |
+| `post-comment` | `false` | When `true`, posts a pull-request summary and requires `pull-requests: write`. |
+| `changed-files` | empty | Optional path to newline-delimited or JSON-list changed paths. |
+| `artifact-name` | `pygate-artifacts` | Caller-configurable uploaded artifact name. |
+| `fail-on-error` | `true` | When `true`, a final `fail` or `escalated` status fails the action; `false` is observation-only. |
+
+It exposes these outputs:
+
+| Output | Values or meaning |
+| --- | --- |
+| `status` | Final result: `pass`, `fail`, or `escalated`. |
+| `gate-status` | Raw initial gate result before repair: `pass` or `fail`. |
+| `repair-status` | `pass`, `escalated`, or `skipped`. |
+| `full-mode-dependency-status` | `ready`, `missing`, or `not-required`. |
+| `full-mode-dependency-classification` | `caller-owned-dependencies`, `missing-test-dependency`, or `canary-does-not-run-tests`. |
+| `changed-files-strategy` | Source label such as `caller-supplied`, `pull-request-diff`, `push-diff`, `parent-diff`, or `first-or-shallow-tracked-files`. |
+| `failures-json` | Path to `.pygate/failures.json` when the gate runs. |
+
+The action uploads `.pygate/` as an action-owned artifact, including hidden files. It includes `gate-result.json`, `failures.json`, `run-metadata.json`, and, in full mode, the pytest report; repair and summary artifacts are included when produced. Treat command output in these artifacts as untrusted data. The default artifact name is `pygate-artifacts`; set `artifact-name` to avoid collisions in matrices.
+
+### Pinning policy
+
+Use the root action at an immutable commit or an immutable release tag. The examples use the audited commit `1a70edc12bfd19e633983e0819b648bb2a5dda4e`; replace it with an immutable release tag when one exists. Do not use a mutable branch reference for the root action.
 
 PyGate never grants merge authority. A workflow still decides whether a failed, timed-out, or escalated job blocks a pull request, and any comment or artifact should be treated as untrusted command output before security-sensitive rendering.
 

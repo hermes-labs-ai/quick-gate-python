@@ -12,6 +12,25 @@ Primary CLI:
 - `pygate summarize --input <failures.json>`
 - `pygate repair --input <failures.json>`
 
+Root GitHub Action quickstart (audited immutable commit):
+- `hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e`
+- grant `contents: read` only for the blocking read-only baseline
+- use `mode: canary`, `fail-on-error: "true"`, and leave repair/comments disabled
+- replace the commit with an immutable release tag when one exists; never use a mutable branch reference
+
+Root action inputs:
+- `mode`, `repair`, `max-attempts`, `python-version`, `post-comment`
+- `changed-files`, `artifact-name`, `fail-on-error`
+
+Root action outputs:
+- `status`: final `pass`, `fail`, or `escalated`
+- `gate-status`: raw initial `pass` or `fail`
+- `repair-status`: `pass`, `escalated`, or `skipped`
+- `full-mode-dependency-status`: `ready`, `missing`, or `not-required`
+- `full-mode-dependency-classification`, `changed-files-strategy`, `failures-json`
+
+Full mode is caller-owned: install project dependencies plus `pytest` and `pytest-json-report` before the action step in the selected Python environment. The action uploads hidden `.pygate/` evidence files under `artifact-name` (default `pygate-artifacts`). Repair is opt-in and can mutate eligible consumer files; comments are opt-in and require `pull-requests: write`, which is commonly unavailable for fork-origin pull requests.
+
 Outputs:
 - failures, run metadata, repair report, escalation, and agent-brief artifacts under `.pygate/`
 
