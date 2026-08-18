@@ -183,7 +183,7 @@ The current root action dependencies run on Node.js 24. GitHub-hosted runners ar
 
 The repository ships the root Marketplace action at [`action.yml`](action.yml) and a copyable example at [`.github/workflows/example-usage.yml`](.github/workflows/example-usage.yml). Pin the root action to this currently audited immutable commit:
 
-`hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e`
+`hermes-labs-ai/quick-gate-python@671e8db37c2bd124d4b74653f8c81945d1592a8f`
 
 ~~~yaml
 name: "Example: PyGate Quality Gates"
@@ -202,7 +202,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e
+      - uses: hermes-labs-ai/quick-gate-python@671e8db37c2bd124d4b74653f8c81945d1592a8f
         with:
           mode: canary
           python-version: "3.12"
@@ -233,7 +233,7 @@ permissions:
   pull-requests: write
 
 steps:
-  - uses: hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e
+  - uses: hermes-labs-ai/quick-gate-python@671e8db37c2bd124d4b74653f8c81945d1592a8f
     with:
       mode: canary
       python-version: "3.12"
@@ -273,7 +273,7 @@ The action uploads `.pygate/` as an action-owned artifact, including hidden file
 
 ### Pinning policy
 
-Use the root action at an immutable commit or an immutable release tag. The examples use the audited commit `1a70edc12bfd19e633983e0819b648bb2a5dda4e`; replace it with an immutable release tag when one exists. Do not use a mutable branch reference for the root action.
+Use the root action at an immutable commit or an immutable release tag. The examples use the audited commit `671e8db37c2bd124d4b74653f8c81945d1592a8f`; replace it with an immutable release tag when one exists. Do not use a mutable branch reference for the root action.
 
 PyGate never grants merge authority. A workflow still decides whether a failed, timed-out, or escalated job blocks a pull request, and any comment or artifact should be treated as untrusted command output before security-sensitive rendering.
 
