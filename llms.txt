@@ -13,10 +13,12 @@ Primary CLI:
 - `pygate repair --input <failures.json>`
 
 Root GitHub Action quickstart (audited immutable commit):
-- `hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e`
+- `hermes-labs-ai/quick-gate-python@671e8db37c2bd124d4b74653f8c81945d1592a8f`
 - grant `contents: read` only for the blocking read-only baseline
 - use `mode: canary`, `fail-on-error: "true"`, and leave repair/comments disabled
-- replace the commit with an immutable release tag when one exists; never use a mutable branch reference
+- the `v0.1.0`, `v0.1.1`, and `v0.2.0` tags version the `pygate-ci` package and predate the root
+  `action.yml`, so they do not resolve as an action reference; pin the audited commit and never use a
+  mutable branch reference
 
 Root action inputs:
 - `mode`, `repair`, `max-attempts`, `python-version`, `post-comment`
