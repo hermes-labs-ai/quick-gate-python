@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `tests/test_docs_action_pin.py`, a regression contract asserting that every documented
+  root-action reference is a 40-character commit SHA and that all documented pins agree.
+
+### Fixed
+
+- Corrected the root-action pin in `llms.txt`, which still referenced the superseded `1a70edc`
+  commit after the audited pin moved to `671e8db`.
+- Replaced the "replace it with an immutable release tag when one exists" guidance in `README.md`,
+  `SECURITY.md`, and `llms.txt`. The published `v0.1.0`, `v0.1.1`, and `v0.2.0` tags predate the
+  root `action.yml`, so following that guidance produced a workflow that cannot resolve the action.
+
 ## [0.2.0] - 2026-08-08
 
 ### Added
