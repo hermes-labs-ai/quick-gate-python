@@ -47,7 +47,7 @@ PyGate executes external tools (`ruff`, `pyright`, `pytest`) via subprocess. Sec
 - **Supply chain pinning**: All third-party actions in CI workflows and the composite action are pinned to SHA digests with version comments (e.g., `actions/checkout@<sha> # v4`). This prevents compromised upstream tags from injecting malicious code.
 - **Permissions**: The composite action requires only `contents: read` by default. The optional PR comment feature requires `pull-requests: write`. No other permissions are requested.
 - **Full-mode dependencies**: The caller owns project and test dependencies. Before full mode, the caller must make `pytest` and `pytest-json-report` available in the Python version selected by the action; the action preflights them and does not install them.
-- **Action pinning**: Use the root `hermes-labs-ai/quick-gate-python@671e8db37c2bd124d4b74653f8c81945d1592a8f` audited commit. The `v0.1.0`, `v0.1.1`, and `v0.2.0` tags version the PyPI package and predate the root `action.yml`, so they do not resolve as an action reference. Do not use a mutable branch reference for the root action.
+- **Action pinning**: Use the root `hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba` audited commit. The `v0.1.0`, `v0.1.1`, and `v0.2.0` tags version the PyPI package and predate the root `action.yml`, so they do not resolve as an action reference. Do not use a mutable branch reference for the root action.
 - **Artifact trust**: Artifacts uploaded to `.pygate/` contain command output (stdout/stderr) from the target project. Downstream consumers should treat these as untrusted data and validate before rendering in security-sensitive contexts.
 
 ### Dependency Supply Chain

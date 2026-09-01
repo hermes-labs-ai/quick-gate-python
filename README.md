@@ -183,7 +183,7 @@ The current root action dependencies run on Node.js 24. GitHub-hosted runners ar
 
 The repository ships the root Marketplace action at [`action.yml`](action.yml) and a copyable example at [`.github/workflows/example-usage.yml`](.github/workflows/example-usage.yml). Pin the root action to this currently audited immutable commit:
 
-`hermes-labs-ai/quick-gate-python@671e8db37c2bd124d4b74653f8c81945d1592a8f`
+`hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba`
 
 ~~~yaml
 name: "Example: PyGate Quality Gates"
@@ -202,7 +202,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: hermes-labs-ai/quick-gate-python@671e8db37c2bd124d4b74653f8c81945d1592a8f
+      - uses: hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba
         with:
           mode: canary
           python-version: "3.12"
@@ -233,7 +233,7 @@ permissions:
   pull-requests: write
 
 steps:
-  - uses: hermes-labs-ai/quick-gate-python@671e8db37c2bd124d4b74653f8c81945d1592a8f
+  - uses: hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba
     with:
       mode: canary
       python-version: "3.12"
@@ -273,7 +273,7 @@ The action uploads `.pygate/` as an action-owned artifact, including hidden file
 
 ### Pinning policy
 
-Use the root action at an immutable commit. The examples use the audited commit `671e8db37c2bd124d4b74653f8c81945d1592a8f`.
+Use the root action at an immutable commit. The examples use the audited commit `39b27c74fa5934c21d4068f3aee06c766e8899ba`.
 
 The published release tags `v0.1.0`, `v0.1.1`, and `v0.2.0` version the `pygate-ci` package on PyPI. They predate the root [`action.yml`](action.yml), so none of them resolves as a GitHub Actions reference: a workflow that pins the root action at `@v0.2.0` fails with a missing-action error. Pin the audited commit until a release tag is cut at or after the root action landed, then prefer that tag. Do not use a mutable branch reference for the root action.
 
