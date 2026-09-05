@@ -43,6 +43,9 @@ class TestIsEligible:
     def test_accepts_nested_py_file(self):
         assert _is_eligible("src/gates/ruff.py") is True
 
+    def test_accepts_filename_containing_double_dot(self):
+        assert _is_eligible("src/version..py") is True
+
 
 class TestCollectScopedFiles:
     def _make_failures(self, *, changed_files=None, finding_files=None):
