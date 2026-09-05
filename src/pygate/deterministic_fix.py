@@ -7,6 +7,7 @@ from pygate.exec import run_command
 from pygate.models import FailuresPayload, GateName
 
 _EXCLUDED_DIRS = re.compile(r"(^|/)(\.(pygate|git|venv|tox|nox)|__pycache__|dist|build|node_modules)(/|$)")
+_PARENT_COMPONENT = re.compile(r"(^|[/\\])\.\.([/\\]|$)")
 _MAX_FILES = 20
 
 
@@ -15,7 +16,7 @@ def _is_eligible(path: str) -> bool:
         return False
     if _EXCLUDED_DIRS.search(path):
         return False
-    return not (path.startswith("/") or ".." in path)
+    return not (path.startswith("/") or _PARENT_COMPONENT.search(path))
 
 
 def _collect_scoped_files(failures: FailuresPayload) -> list[str]:
