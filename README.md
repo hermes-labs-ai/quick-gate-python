@@ -3,8 +3,11 @@
 [![CI](https://github.com/hermes-labs-ai/quick-gate-python/actions/workflows/ci.yml/badge.svg)](https://github.com/hermes-labs-ai/quick-gate-python/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/pygate-ci)](https://pypi.org/project/pygate-ci/)
 [![Apache 2.0 license](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Made by Hermes Labs](https://img.shields.io/badge/made%20by-Hermes%20Labs-4F46E5)](https://hermes-labs.ai)
 
 **PyGate turns Ruff, Pyright, and pytest results into one deterministic Python quality-gate result, with bounded lint repair and structured evidence when the gate cannot finish.**
+
+PyGate is an open-source reliability tool by [Hermes Labs](https://hermes-labs.ai), built for teams that need CI results to remain inspectable and actionable.
 
 Python maintainers usually meet the same problem at the worst possible time: a pull request has several tool outputs, each with its own format and failure order, and someone must decide what to fix first. PyGate gives a CI job or follow-up agent one fail-fast result, preserves the underlying command evidence, and stops deterministic repair within an explicit budget.
 
