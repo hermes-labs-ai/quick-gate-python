@@ -21,6 +21,7 @@ pip install -e ".[dev]"
 pygate --help
 pygate summarize --input demo/artifacts/failures.json
 pytest -q
+pytest -m integration  # real fresh-repository proof; needs pygate/ruff/pyright on PATH
 ruff check src/ tests/
 pyright src/
 ```

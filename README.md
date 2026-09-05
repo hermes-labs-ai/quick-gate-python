@@ -41,6 +41,15 @@ pygate summarize --input .pygate/failures.json
 
 That writes a short agent brief to `.pygate/agent-brief.json` and `.pygate/agent-brief.md`.
 
+Don't take the pass/fail/escalated contract on faith. [`tests/test_fresh_repo_integration.py`](tests/test_fresh_repo_integration.py) builds real throwaway projects from [`tests/action-fixture/`](tests/action-fixture/) and runs the installed `pygate` binary against them for real — no mocked tool output. Clone the repo and run it yourself:
+
+~~~bash
+pip install -e ".[dev]"
+pytest -m integration
+~~~
+
+It proves three outcomes end to end: a clean project passes, a type error fails the gate and repair correctly escalates instead of guessing, and a Ruff-fixable lint issue is auto-repaired back to a passing gate. The same fixtures back the root action's CI smoke test ([`.github/workflows/action-smoke.yml`](.github/workflows/action-smoke.yml)), which runs the packaged GitHub Action itself against a separate, isolated consumer workspace on every push.
+
 ## What PyGate does
 
 PyGate coordinates three existing tools:
@@ -179,9 +188,11 @@ The same keys can be used in a standalone `pygate.toml` with `[policy]`, `[comma
 
 ## GitHub Actions
 
+The current root action dependencies run on Node.js 24. GitHub-hosted runners are ready; self-hosted runners must use Actions Runner v2.327.1 or later.
+
 The repository ships the root Marketplace action at [`action.yml`](action.yml) and a copyable example at [`.github/workflows/example-usage.yml`](.github/workflows/example-usage.yml). Pin the root action to this currently audited immutable commit:
 
-`hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e`
+`hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba`
 
 ~~~yaml
 name: "Example: PyGate Quality Gates"
@@ -200,7 +211,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e
+      - uses: hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba
         with:
           mode: canary
           python-version: "3.12"
@@ -212,7 +223,7 @@ This first example is read-only and blocking: it grants only `contents: read`, l
 The root action installs PyGate from its own checkout, then installs Ruff and Pyright, detects changed files, writes run artifacts to `.pygate/`, optionally attempts repair, optionally posts a pull-request comment, and uploads the artifact directory. Canary mode skips tests by default. Full mode is caller-owned: before the action step, install the project and test dependencies into the same Python version selected by the action, for example:
 
 ~~~yaml
-- uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+- uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
   with:
     python-version: "3.12"
 - run: python -m pip install -e ".[dev]"
@@ -231,7 +242,7 @@ permissions:
   pull-requests: write
 
 steps:
-  - uses: hermes-labs-ai/quick-gate-python@1a70edc12bfd19e633983e0819b648bb2a5dda4e
+  - uses: hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba
     with:
       mode: canary
       python-version: "3.12"
@@ -271,7 +282,13 @@ The action uploads `.pygate/` as an action-owned artifact, including hidden file
 
 ### Pinning policy
 
-Use the root action at an immutable commit or an immutable release tag. The examples use the audited commit `1a70edc12bfd19e633983e0819b648bb2a5dda4e`; replace it with an immutable release tag when one exists. Do not use a mutable branch reference for the root action.
+Use the root action at an immutable commit. The examples use the audited commit `39b27c74fa5934c21d4068f3aee06c766e8899ba`.
+
+The `v0.2.1` release is the first package tag that also contains the root
+[`action.yml`](action.yml), so that tag is a valid convenience reference.
+The earlier `v0.1.0`, `v0.1.1`, and `v0.2.0` tags predate the action and
+do not resolve. For reproducible supply-chain pinning, use the audited commit
+shown above; do not use a mutable branch reference.
 
 PyGate never grants merge authority. A workflow still decides whether a failed, timed-out, or escalated job blocks a pull request, and any comment or artifact should be treated as untrusted command output before security-sensitive rendering.
 
@@ -333,6 +350,8 @@ ruff check src/ tests/
 ruff format --check src/ tests/
 pyright src/
 ~~~
+
+`pytest tests/ -v` runs the offline suite only; the mocked gate outputs described in [`AGENTS.md`](AGENTS.md) never shell out to Ruff or Pyright. Run `pytest -m integration` separately to exercise the real fresh-repository fixtures above.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidance and [`SECURITY.md`](SECURITY.md) for vulnerability reporting and execution-safety notes.
 
