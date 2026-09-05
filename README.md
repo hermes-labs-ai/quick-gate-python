@@ -284,7 +284,11 @@ The action uploads `.pygate/` as an action-owned artifact, including hidden file
 
 Use the root action at an immutable commit. The examples use the audited commit `39b27c74fa5934c21d4068f3aee06c766e8899ba`.
 
-The published release tags `v0.1.0`, `v0.1.1`, and `v0.2.0` version the `pygate-ci` package on PyPI. They predate the root [`action.yml`](action.yml), so none of them resolves as a GitHub Actions reference: a workflow that pins the root action at `@v0.2.0` fails with a missing-action error. Pin the audited commit until a release tag is cut at or after the root action landed, then prefer that tag. Do not use a mutable branch reference for the root action.
+The `v0.2.1` release is the first package tag that also contains the root
+[`action.yml`](action.yml), so that tag is a valid convenience reference.
+The earlier `v0.1.0`, `v0.1.1`, and `v0.2.0` tags predate the action and
+do not resolve. For reproducible supply-chain pinning, use the audited commit
+shown above; do not use a mutable branch reference.
 
 PyGate never grants merge authority. A workflow still decides whether a failed, timed-out, or escalated job blocks a pull request, and any comment or artifact should be treated as untrusted command output before security-sensitive rendering.
 

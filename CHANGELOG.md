@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated Action pinning guidance after publication: `v0.2.1` is the first
+  release tag containing the root `action.yml`; the audited commit remains
+  the reproducible supply-chain pin.
+
 ## [0.2.1] - 2026-09-04
 
 ### Added
