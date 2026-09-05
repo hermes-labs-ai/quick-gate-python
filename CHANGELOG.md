@@ -7,8 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-04
+
 ### Added
 
+- Added `tests/test_fresh_repo_integration.py`, a real-subprocess fresh-repository proof: it
+  builds throwaway projects from the existing `tests/action-fixture/` fixtures and runs the
+  installed `pygate` binary (with real Ruff and Pyright, no mocked tool output) to demonstrate,
+  end to end, that a clean project passes, a non-fixable type error fails the gate and repair
+  correctly escalates, and a Ruff-fixable lint issue is auto-repaired back to a passing gate.
+  Isolated behind a new `integration` pytest marker (`addopts = "-m 'not integration'"` in
+  `pyproject.toml`) so it is excluded from the default `pytest` run and its "mocked tool output
+  only" invariant. Run it explicitly with `pytest -m integration`.
+- Added a `ci.yml` `integration` job that installs `.[dev]` (which supplies `pygate`, `ruff`,
+  and `pyright` on `PATH`) and runs `pytest -m integration -v`, so the real-subprocess proof
+  above runs on every push and pull request against `main`, alongside (not in place of) the
+  existing offline `test` job and the GitHub-composite-action proof in `action-smoke.yml`.
 - Added `tests/test_docs_action_pin.py`, a regression contract asserting that every documented
   root-action reference is a 40-character commit SHA and that all documented pins agree.
 
@@ -19,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced the "replace it with an immutable release tag when one exists" guidance in `README.md`,
   `SECURITY.md`, and `llms.txt`. The published `v0.1.0`, `v0.1.1`, and `v0.2.0` tags predate the
   root `action.yml`, so following that guidance produced a workflow that cannot resolve the action.
+
+### Boundaries
+
+- This release does not change any gate, repair, or CLI behavior; the package version moves only
+  because CI now runs an additional, previously-unwired proof and the docs/pin corrections above
+  ship with it. It does not by itself change root-action pinning guidance: continue to pin the
+  root action at an audited commit, not at a PyPI release tag, until the README's "Pinning
+  policy" section is updated to name a tag cut at or after `action.yml` landed.
 
 ## [0.2.0] - 2026-08-08
 
@@ -64,7 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Composite GitHub Action for CI integration
 - Structured artifacts: failures.json, run-metadata.json, agent-brief.json/md, repair-report.json, escalation.json
 
-[Unreleased]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.1.0...v0.1.1

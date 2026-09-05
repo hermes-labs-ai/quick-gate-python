@@ -5,7 +5,8 @@ Deterministic quality gate CLI for Python projects. Runs ruff + pyright + pytest
 ## Commands
 
 - `pip install -e ".[dev]"` -- Install
-- `pytest` -- 140 tests, all offline
+- `pytest` -- offline suite (mocked gate outputs); excludes `integration`-marked tests
+- `pytest -m integration` -- real fresh-repository proof; runs the packaged `pygate` binary plus ruff/pyright against on-disk fixtures, opt-in and requires those tools on PATH
 - `pytest tests/test_run_command.py -v` -- Single module
 - `ruff check src/pygate/ --fix` -- Lint fix
 - `pyright src/pygate/` -- Type check
@@ -32,7 +33,7 @@ Key flow: `run_command` calls each gate → gate parses tool JSON output → res
 - Pydantic v2 for all models (not dataclasses)
 - `from __future__ import annotations` in every module
 - JSON schemas in `schemas/` must match Pydantic models
-- Tests never execute real subprocesses — all gate outputs mocked
+- Tests never execute real subprocesses — all gate outputs mocked, except the explicitly opt-in `integration`-marked tests (`tests/test_fresh_repo_integration.py`), which are excluded from the default `pytest` run
 - Repair loop is bounded by `--max-attempts` (safety invariant)
 - Two runtime deps only: `pydantic`, `tomli` (for Python <3.11)
 

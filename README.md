@@ -41,6 +41,15 @@ pygate summarize --input .pygate/failures.json
 
 That writes a short agent brief to `.pygate/agent-brief.json` and `.pygate/agent-brief.md`.
 
+Don't take the pass/fail/escalated contract on faith. [`tests/test_fresh_repo_integration.py`](tests/test_fresh_repo_integration.py) builds real throwaway projects from [`tests/action-fixture/`](tests/action-fixture/) and runs the installed `pygate` binary against them for real — no mocked tool output. Clone the repo and run it yourself:
+
+~~~bash
+pip install -e ".[dev]"
+pytest -m integration
+~~~
+
+It proves three outcomes end to end: a clean project passes, a type error fails the gate and repair correctly escalates instead of guessing, and a Ruff-fixable lint issue is auto-repaired back to a passing gate. The same fixtures back the root action's CI smoke test ([`.github/workflows/action-smoke.yml`](.github/workflows/action-smoke.yml)), which runs the packaged GitHub Action itself against a separate, isolated consumer workspace on every push.
+
 ## What PyGate does
 
 PyGate coordinates three existing tools:
@@ -337,6 +346,8 @@ ruff check src/ tests/
 ruff format --check src/ tests/
 pyright src/
 ~~~
+
+`pytest tests/ -v` runs the offline suite only; the mocked gate outputs described in [`AGENTS.md`](AGENTS.md) never shell out to Ruff or Pyright. Run `pytest -m integration` separately to exercise the real fresh-repository fixtures above.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidance and [`SECURITY.md`](SECURITY.md) for vulnerability reporting and execution-safety notes.
 
