@@ -78,3 +78,7 @@ exclude = ["tests/action-fixture/fail.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not integration'"
+markers = [
+    "integration: real-subprocess fresh-repository proof; requires ruff/pyright/pygate on PATH, excluded from the default run",
+]
