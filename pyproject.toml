@@ -10,7 +10,7 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
-    { name = "Hermes Labs", email = "rbosch@lpci.ai" },
+    { name = "Hermes Labs", email = "roli@hermes-labs.ai" },
 ]
 keywords = [
     "python", "quality-gate", "python-ci", "fail-fast", "lint", "typecheck",
