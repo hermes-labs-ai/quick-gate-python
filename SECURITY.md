@@ -12,7 +12,7 @@ If you discover a security vulnerability in PyGate, please report it responsibly
 
 **Do not open a public issue.**
 
-Instead, email **rbosch@lpci.ai** with:
+Instead, email **roli@hermes-labs.ai** with:
 
 - A description of the vulnerability
 - Steps to reproduce
