@@ -146,6 +146,25 @@ print(result.status)  # pass, fail, timeout, or error
 
 The API returns a Pydantic `GateResultV1` model. It does not write `.pygate`, `gate-result.json`, or other artifacts. Use the explicit CLI output path or the legacy artifact commands when files are required.
 
+### Machine-readable result envelope
+
+For tooling that compares results across products, the same evaluation can be
+emitted as a Hermes Reliability Lab result envelope — the ordinary
+`gate-result/v1` payload embedded verbatim, plus tool version, a hash of the
+exact input, one finding per check and per lint/typecheck finding pygate
+already produced, the exit code, a timestamp, and the Git commit when run
+from a checkout:
+
+~~~bash
+python -m pygate.evidence --mode canary
+python -m pygate.evidence --mode full --path path/to/project
+~~~
+
+It changes no gate resolution or scoring and writes nothing beyond what
+`pygate.api.evaluate` already writes (nothing). A check pygate could not run —
+missing executable, or an error starting it — is reported as `unknown`, not
+folded into a pass or silently treated as a code-quality failure.
+
 ## Bounded repair
 
 `pygate repair` is deliberately narrower than an AI coding agent. For Ruff findings in eligible Python files, it can run `ruff check --fix` and `ruff format`, re-run the gates, and stop when the result passes, worsens, exceeds the patch budget, reaches the attempt limit, or stops improving.

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `python -m pygate.evidence`: emit a `pygate run` evaluation as a Hermes Reliability Lab result envelope (tool, version, status, input hash, per-check and per-finding evidence, exit code, timestamp, Git commit) with the ordinary `gate-result/v1` payload embedded verbatim. No change to gate resolution or scoring.
+
 ## [0.2.2] - 2026-09-05
 
 ### Fixed
