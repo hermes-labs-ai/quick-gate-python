@@ -94,8 +94,15 @@ def test_findings_never_rename_or_drop_a_native_result():
             {"name": "typecheck", "status": "timeout", "argv": ["pyright", "."], "exit_code": None},
         ],
         "findings": [
-            {"gate": "lint", "severity": "critical", "summary": "S001 unused import",
-             "rule": "F401", "files": ["a.py"], "line": 3, "column": 1},
+            {
+                "gate": "lint",
+                "severity": "critical",
+                "summary": "S001 unused import",
+                "rule": "F401",
+                "files": ["a.py"],
+                "line": 3,
+                "column": 1,
+            },
         ],
     }
     findings = evidence.findings_for(project_result)
@@ -113,11 +120,17 @@ def test_input_errors_exit_1_with_an_unknown_envelope(tmp_path):
 
     empty = tmp_path / "empty"
     empty.mkdir()
-    payload = json.loads(subprocess.run(
-        [sys.executable, "-m", "pygate.evidence", "--mode", "canary", "--path", str(empty)],
-        cwd=REPO_ROOT, env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
-        text=True, capture_output=True, timeout=30,
-    ).stdout, strict=True)
+    payload = json.loads(
+        subprocess.run(
+            [sys.executable, "-m", "pygate.evidence", "--mode", "canary", "--path", str(empty)],
+            cwd=REPO_ROOT,
+            env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
+            text=True,
+            capture_output=True,
+            timeout=30,
+        ).stdout,
+        strict=True,
+    )
     assert payload["status"] == "unknown"
     assert payload["exitCode"] == 1
     assert payload["findings"][0]["id"] == "input.no-config"
@@ -126,10 +139,10 @@ def test_input_errors_exit_1_with_an_unknown_envelope(tmp_path):
 
 def test_overall_status_is_the_worst_finding_present():
     assert evidence.worst_status([]) == "pass"
-    assert evidence.worst_status([evidence.finding("a", "warn", "x"),
-                                  evidence.finding("b", "unknown", "y")]) == "unknown"
-    assert evidence.worst_status([evidence.finding("a", "unknown", "x"),
-                                  evidence.finding("b", "fail", "y")]) == "fail"
+    assert (
+        evidence.worst_status([evidence.finding("a", "warn", "x"), evidence.finding("b", "unknown", "y")]) == "unknown"
+    )
+    assert evidence.worst_status([evidence.finding("a", "unknown", "x"), evidence.finding("b", "fail", "y")]) == "fail"
     with pytest.raises(ValueError):
         evidence.finding("a", "bad", "x")
 
@@ -147,8 +160,11 @@ def test_a_run_writes_nothing_outside_the_fixture(tmp_path):
     before = sorted(p.relative_to(project) for p in project.rglob("*"))
     completed = subprocess.run(
         [sys.executable, "-m", "pygate.evidence", "--mode", "canary"],
-        cwd=project, env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
-        text=True, capture_output=True, timeout=30,
+        cwd=project,
+        env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
+        text=True,
+        capture_output=True,
+        timeout=30,
     )
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout)["status"] == "pass"
@@ -159,8 +175,9 @@ def test_git_sha_marks_a_tree_whose_commit_does_not_describe_the_code(tmp_path):
     assert evidence.git_sha(tmp_path) is None
 
     def run(*args):
-        subprocess.run(["git", "-C", str(tmp_path), *args], check=True,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            ["git", "-C", str(tmp_path), *args], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
 
     run("init", "-q")
     run("config", "user.email", "test@example.invalid")

@@ -18,7 +18,7 @@ plus the individual lint/typecheck/test findings pygate already produces.
     python -m pygate.evidence --mode canary
     python -m pygate.evidence --mode full --path fixtures/lab/broken
 
-Added in v0.2.3 (unreleased).
+Added in v0.3.0.
 """
 
 from __future__ import annotations
@@ -77,8 +77,9 @@ def input_hash(value: Any) -> str:
     return f"sha256:{digest}"
 
 
-def finding(identifier: str, severity: str, summary: str, detail: str | None = None,
-            path: str | None = None) -> dict[str, Any]:
+def finding(
+    identifier: str, severity: str, summary: str, detail: str | None = None, path: str | None = None
+) -> dict[str, Any]:
     if severity not in STATUS_ORDER:
         raise ValueError(f"unknown severity: {severity}")
     result: dict[str, Any] = {"id": identifier, "severity": severity, "summary": summary}
@@ -101,7 +102,10 @@ def _git(start: Path, *arguments: str) -> subprocess.CompletedProcess[str] | Non
     try:
         return subprocess.run(
             ["git", "-C", str(start), *arguments],
-            text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=5,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -156,13 +160,15 @@ def findings_for(result: dict[str, Any]) -> list[dict[str, Any]]:
         stderr_excerpt = (check.get("stderr") or "").strip().splitlines()[:5]
         if stderr_excerpt:
             detail_lines.append("stderr: " + " / ".join(stderr_excerpt))
-        findings.append(finding(
-            f"check.{check['name']}.{check['status']}",
-            severity,
-            f"{check['name']}: {check['status']}"
-            + (f" (exit {check['exit_code']})" if check.get("exit_code") is not None else ""),
-            "\n".join(detail_lines) or None,
-        ))
+        findings.append(
+            finding(
+                f"check.{check['name']}.{check['status']}",
+                severity,
+                f"{check['name']}: {check['status']}"
+                + (f" (exit {check['exit_code']})" if check.get("exit_code") is not None else ""),
+                "\n".join(detail_lines) or None,
+            )
+        )
 
     for index, item in enumerate(result["findings"]):
         location = ""
@@ -172,19 +178,22 @@ def findings_for(result: dict[str, Any]) -> list[dict[str, Any]]:
                 location += f":{item['line']}"
                 if item.get("column") is not None:
                     location += f":{item['column']}"
-        findings.append(finding(
-            f"finding.{item.get('gate', 'unknown')}.{index}",
-            FINDING_SEVERITY.get(item.get("severity"), "warn"),
-            item.get("summary", ""),
-            f"rule: {item['rule']}" if item.get("rule") else None,
-            location or None,
-        ))
+        findings.append(
+            finding(
+                f"finding.{item.get('gate', 'unknown')}.{index}",
+                FINDING_SEVERITY.get(item.get("severity"), "warn"),
+                item.get("summary", ""),
+                f"rule: {item['rule']}" if item.get("rule") else None,
+                location or None,
+            )
+        )
 
     return findings
 
 
-def _envelope(command: str, findings: list[dict[str, Any]], inputs: Any,
-              exit_code: int, data: Any, timestamp: str) -> dict[str, Any]:
+def _envelope(
+    command: str, findings: list[dict[str, Any]], inputs: Any, exit_code: int, data: Any, timestamp: str
+) -> dict[str, Any]:
     return {
         "envelope": ENVELOPE,
         "tool": TOOL,
@@ -224,10 +233,12 @@ def envelope_for(*, mode: str, cwd: Path) -> dict[str, Any]:
 
 def input_error_envelope(identifier: str, message: str, mode: str, cwd: str) -> dict[str, Any]:
     """The run could not start; say so in the same shape rather than only on stderr."""
-    findings = [finding(identifier, "unknown", message,
-                        "No gates ran, so nothing is known about this project.")]
+    findings = [finding(identifier, "unknown", message, "No gates ran, so nothing is known about this project.")]
     return _envelope(
-        "run", findings, {"command": "run", "mode": mode, "cwd": cwd}, 1,
+        "run",
+        findings,
+        {"command": "run", "mode": mode, "cwd": cwd},
+        1,
         {"mode": mode, "cwd": cwd, "effects": {"writes": "none", "network": "none"}, "result": None},
         _timestamp(),
     )
@@ -249,13 +260,15 @@ def main(argv: list[str] | None = None) -> int:
 
     cwd = Path(args.path).resolve()
     if not cwd.is_dir():
-        result = input_error_envelope("input.not-a-directory", f"{args.path!r} is not a directory.",
-                                      args.mode, str(cwd))
+        result = input_error_envelope(
+            "input.not-a-directory", f"{args.path!r} is not a directory.", args.mode, str(cwd)
+        )
     elif not (cwd / "pyproject.toml").exists() and not (cwd / "pygate.toml").exists():
         result = input_error_envelope(
             "input.no-config",
             f"No pyproject.toml or pygate.toml in {cwd}; pygate has nothing to configure gates from.",
-            args.mode, str(cwd),
+            args.mode,
+            str(cwd),
         )
     else:
         result = envelope_for(mode=args.mode, cwd=cwd)

@@ -151,9 +151,9 @@ The API returns a Pydantic `GateResultV1` model. It does not write `.pygate`, `g
 For tooling that compares results across products, the same evaluation can be
 emitted as a Hermes Reliability Lab result envelope — the ordinary
 `gate-result/v1` payload embedded verbatim, plus tool version, a hash of the
-exact input, one finding per check and per lint/typecheck finding pygate
-already produced, the exit code, a timestamp, and the Git commit when run
-from a checkout:
+exact input, one finding per non-passing check and per lint/typecheck finding
+pygate already produced, the exit code, a timestamp, and the Git commit when
+run from a checkout:
 
 ~~~bash
 python -m pygate.evidence --mode canary
