@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pygate-ci"
-version = "0.2.2"
+version = "0.3.0"
 description = "Python quality gate CLI for Ruff, Pyright, and pytest with bounded auto-repair and escalation artifacts"
 readme = "README.md"
 license = "Apache-2.0"
@@ -67,6 +67,7 @@ packages = ["src/pygate"]
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+extend-exclude = [".hermes/hermes_gate_runner.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
@@ -74,7 +75,7 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 [tool.pyright]
 pythonVersion = "3.10"
 typeCheckingMode = "basic"
-exclude = ["tests/action-fixture/fail.py"]
+exclude = [".venv", "fixtures/lab/broken", "tests/action-fixture/fail.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

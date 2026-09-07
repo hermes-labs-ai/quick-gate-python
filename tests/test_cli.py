@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+from importlib.metadata import version
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
+from pygate import __version__
 from pygate.cli import main
 from pygate.contract import GateResultV1
 
 
 class TestCLIParsing:
+    def test_runtime_version_matches_distribution_metadata(self):
+        assert __version__ == version("pygate-ci")
+
     def test_no_command_shows_help(self, capsys):
         with pytest.raises(SystemExit) as exc:
             main([])
