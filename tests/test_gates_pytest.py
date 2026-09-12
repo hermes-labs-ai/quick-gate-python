@@ -61,3 +61,66 @@ class TestParsePytestOutput:
         report_path.write_text("not json")
         findings = parse_pytest_output("", "", 1, report_path, Path("/tmp"))
         assert findings == []
+
+    def test_setup_error_preserves_longrepr(self, tmp_path: Path):
+        """A fixture that raises reports outcome=error with detail in setup and no call phase."""
+        longrepr = (
+            "@pytest.fixture\n"
+            "    def db_conn():\n"
+            ">       raise RuntimeError('cannot reach database')\n"
+            "E       RuntimeError: cannot reach database\n\n"
+            "tests/conftest.py:12: RuntimeError"
+        )
+        report = {
+            "tests": [
+                {
+                    "nodeid": "tests/test_db.py::test_query",
+                    "outcome": "error",
+                    "setup": {"duration": 0.02, "outcome": "failed", "longrepr": longrepr},
+                    "teardown": {"duration": 0.001, "outcome": "passed"},
+                }
+            ]
+        }
+        report_path = tmp_path / "report.json"
+        report_path.write_text(json.dumps(report))
+
+        findings = parse_pytest_output("", "", 1, report_path, Path("/tmp"))
+
+        assert len(findings) == 1
+        finding = findings[0]
+        assert finding.raw["longrepr"] == longrepr
+        assert "RuntimeError: cannot reach database" in finding.raw["longrepr"]
+        assert finding.raw["duration"] == 0.02
+        assert finding.summary.startswith("tests/test_db.py::test_query: @pytest.fixture")
+
+    def test_teardown_error_preserves_longrepr(self, tmp_path: Path):
+        """A fixture that raises on teardown reports outcome=error with a clean call phase."""
+        longrepr = (
+            "    def db_conn():\n"
+            "        yield conn\n"
+            ">       conn.close()\n"
+            "E       OSError: connection already closed\n\n"
+            "tests/conftest.py:19: OSError"
+        )
+        report = {
+            "tests": [
+                {
+                    "nodeid": "tests/test_db.py::test_insert",
+                    "outcome": "error",
+                    "setup": {"duration": 0.001, "outcome": "passed"},
+                    "call": {"duration": 0.05, "outcome": "passed"},
+                    "teardown": {"duration": 0.03, "outcome": "failed", "longrepr": longrepr},
+                }
+            ]
+        }
+        report_path = tmp_path / "report.json"
+        report_path.write_text(json.dumps(report))
+
+        findings = parse_pytest_output("", "", 1, report_path, Path("/tmp"))
+
+        assert len(findings) == 1
+        finding = findings[0]
+        assert finding.raw["longrepr"] == longrepr
+        assert "OSError: connection already closed" in finding.raw["longrepr"]
+        assert finding.raw["duration"] == 0.03
+        assert finding.summary.startswith("tests/test_db.py::test_insert:     def db_conn():")

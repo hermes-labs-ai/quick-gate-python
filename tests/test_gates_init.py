@@ -103,3 +103,39 @@ class TestRunDeterministicGates:
             mode=RunMode.CANARY, cwd=tmp_path, config=config, changed_files=[]
         )
         assert mock_run.call_args_list[0][0][0] == "custom-ruff check ."
+
+
+class TestTestGateStaleReport:
+    @patch("pygate.gates.run_command")
+    def test_stale_pytest_report_is_ignored_without_artifact_dir(self, mock_run, tmp_path: Path):
+        """Without artifact_dir no fresh JSON report is requested, so a leftover one must not be read."""
+        pygate_dir = tmp_path / ".pygate"
+        pygate_dir.mkdir()
+        (pygate_dir / "pytest-report.json").write_text(
+            json.dumps(
+                {
+                    "tests": [
+                        {
+                            "nodeid": "tests/test_stale.py::test_removed",
+                            "outcome": "failed",
+                            "call": {"longrepr": "AssertionError: from a previous run", "duration": 0.1},
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        mock_run.side_effect = [
+            _make_trace(0, "[]"),  # ruff passes
+            _make_trace(0, json.dumps({"generalDiagnostics": [], "summary": {"errorCount": 0}})),  # pyright passes
+            _make_trace(1, "1 failed in 0.01s"),  # pytest fails, writes no report
+        ]
+        config = {"gates": {}, "commands": {}}
+        results, findings, traces = run_deterministic_gates(
+            mode=RunMode.FULL, cwd=tmp_path, config=config, changed_files=[], artifact_dir=None
+        )
+
+        assert "--json-report" not in mock_run.call_args_list[2][0][0]
+        test_findings = [f for f in findings if f.gate == GateName.TEST]
+        assert [f.id for f in test_findings] == ["test_exit_1"]
+        assert not any("test_stale" in f.id for f in test_findings)

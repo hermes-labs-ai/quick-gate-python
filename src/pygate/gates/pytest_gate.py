@@ -49,9 +49,17 @@ def _parse_json_report(report_path: Path, exit_code: int, cwd: Path) -> list[Fin
             continue
 
         nodeid = test.get("nodeid", "")
-        call = test.get("call", {})
-        longrepr = call.get("longrepr", "")
-        duration = call.get("duration", 0)
+        # Prefer the phase that actually failed so setup/teardown errors keep
+        # their exception detail instead of falling through to an empty call.
+        phase = test.get("call", {})
+        if not phase.get("longrepr"):
+            for phase_name in ("setup", "teardown"):
+                candidate = test.get(phase_name, {})
+                if candidate.get("longrepr"):
+                    phase = candidate
+                    break
+        longrepr = phase.get("longrepr", "")
+        duration = phase.get("duration", 0)
 
         # Extract file path from nodeid (e.g., "tests/test_foo.py::test_bar")
         file_part = nodeid.split("::")[0] if "::" in nodeid else nodeid

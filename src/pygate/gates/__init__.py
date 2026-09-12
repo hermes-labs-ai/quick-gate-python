@@ -122,7 +122,9 @@ def _parse_gate_output(gate: GateName, trace: CommandTrace, cwd: Path, *, artifa
         case GateName.TYPECHECK:
             return parse_pyright_output(trace.stdout, trace.stderr, trace.exit_code or 1, cwd)
         case GateName.TEST:
-            report_path = (artifact_dir or cwd / ".pygate") / "pytest-report.json"
+            # Only artifact_dir runs request a fresh --json-report; otherwise any
+            # report on disk is left over from an earlier run and must be ignored.
+            report_path = artifact_dir / "pytest-report.json" if artifact_dir is not None else None
             return parse_pytest_output(trace.stdout, trace.stderr, trace.exit_code or 1, report_path, cwd)
         case _:
             return []
