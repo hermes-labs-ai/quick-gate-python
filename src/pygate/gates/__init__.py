@@ -67,6 +67,8 @@ def run_deterministic_gates(
             continue
 
         cmd = _resolve_command(gate_name, commands_config, cwd, artifact_dir=artifact_dir)
+        if gate_name == GateName.TEST and artifact_dir is not None:
+            (artifact_dir / "pytest-report.json").unlink(missing_ok=True)
         gate_deadline = time.monotonic() + float(
             config.get("policy", {}).get("gate_timeout_seconds", timeout_seconds or 600)
         )
@@ -122,7 +124,9 @@ def _parse_gate_output(gate: GateName, trace: CommandTrace, cwd: Path, *, artifa
         case GateName.TYPECHECK:
             return parse_pyright_output(trace.stdout, trace.stderr, trace.exit_code or 1, cwd)
         case GateName.TEST:
-            report_path = (artifact_dir or cwd / ".pygate") / "pytest-report.json"
+            # Artifact reports are cleared immediately before the test command,
+            # so any report present now was produced by this run.
+            report_path = artifact_dir / "pytest-report.json" if artifact_dir is not None else None
             return parse_pytest_output(trace.stdout, trace.stderr, trace.exit_code or 1, report_path, cwd)
         case _:
             return []
