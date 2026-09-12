@@ -139,3 +139,43 @@ class TestTestGateStaleReport:
         test_findings = [f for f in findings if f.gate == GateName.TEST]
         assert [f.id for f in test_findings] == ["test_exit_1"]
         assert not any("test_stale" in f.id for f in test_findings)
+
+    @patch("pygate.gates.run_command")
+    def test_stale_pytest_report_is_removed_before_custom_test_command(self, mock_run, tmp_path: Path):
+        """A configured test command must not expose an artifact report left by an earlier run."""
+        artifact_dir = tmp_path / ".pygate"
+        artifact_dir.mkdir()
+        report_path = artifact_dir / "pytest-report.json"
+        report_path.write_text(
+            json.dumps(
+                {
+                    "tests": [
+                        {
+                            "nodeid": "tests/test_stale.py::test_removed",
+                            "outcome": "failed",
+                            "call": {"longrepr": "AssertionError: from a previous run", "duration": 0.1},
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        mock_run.side_effect = [
+            _make_trace(0, "[]"),
+            _make_trace(0, json.dumps({"generalDiagnostics": [], "summary": {"errorCount": 0}})),
+            _make_trace(1, "1 failed in 0.01s"),
+        ]
+
+        _, findings, _ = run_deterministic_gates(
+            mode=RunMode.FULL,
+            cwd=tmp_path,
+            config={"gates": {}, "commands": {"test": "custom-pytest"}},
+            changed_files=[],
+            artifact_dir=artifact_dir,
+        )
+
+        assert mock_run.call_args_list[2][0][0] == "custom-pytest"
+        assert not report_path.exists()
+        test_findings = [f for f in findings if f.gate == GateName.TEST]
+        assert [f.id for f in test_findings] == ["test_exit_1"]
+        assert not any("test_stale" in f.id for f in test_findings)
