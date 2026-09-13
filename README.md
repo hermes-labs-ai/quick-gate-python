@@ -53,6 +53,27 @@ pytest -m integration
 
 It proves three outcomes end to end: a clean project passes, a type error fails the gate and repair correctly escalates instead of guessing, and a Ruff-fixable lint issue is auto-repaired back to a passing gate. The same fixtures back the root action's CI smoke test ([`.github/workflows/action-smoke.yml`](.github/workflows/action-smoke.yml)), which runs the packaged GitHub Action itself against a separate, isolated consumer workspace on every push.
 
+## Agent skill
+
+The repository root is also a portable [Agent Plugin](https://agent-plugins.org)
+(`plugin.json`, Agent Plugins 1.0.0) that ships one skill,
+[`skills/quick-gate-python/SKILL.md`](skills/quick-gate-python/SKILL.md). It
+teaches a coding agent to run `pygate` (or the pinned
+`uvx --from pygate-ci==0.3.1 pygate`) and report the result without
+overclaiming.
+
+| Host | Install | Read back |
+| --- | --- | --- |
+| Claude Code | `claude plugin marketplace add hermes-labs-ai/quick-gate-python`<br>`claude plugin install quick-gate-python@quick-gate-python` | `claude plugin list` |
+| OpenAI Codex CLI | `codex plugin marketplace add hermes-labs-ai/quick-gate-python`<br>`codex plugin add quick-gate-python@quick-gate-python` | `codex plugin list` |
+| Gemini CLI | `gemini extensions install https://github.com/hermes-labs-ai/quick-gate-python --ref main` | `gemini skills list` |
+| Any skills.sh agent | `npx skills add https://github.com/hermes-labs-ai/quick-gate-python --skill quick-gate-python` | `npx skills list` |
+
+Claude Code reads `.claude-plugin/`; Codex reads `.agents/plugins/marketplace.json`
+(entry `./`, the root) and `plugin.json`; Gemini CLI reads `gemini-extension.json`.
+All of them load the same `skills/` directory. Keep `--ref main` for Gemini:
+releases up to v0.3.1 predate `gemini-extension.json`.
+
 ## What PyGate does
 
 PyGate coordinates three existing tools:

@@ -1,0 +1,5 @@
+{
+  "name": "quick-gate-python",
+  "version": "0.3.1",
+  "description": "Python quality gate CLI for Ruff, Pyright, and pytest with bounded auto-repair and escalation artifacts"
+}

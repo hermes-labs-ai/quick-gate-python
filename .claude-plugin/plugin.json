@@ -1,0 +1,9 @@
+{
+  "name": "quick-gate-python",
+  "version": "0.3.1",
+  "description": "Python quality gate CLI for Ruff, Pyright, and pytest with bounded auto-repair and escalation artifacts",
+  "author": { "name": "Hermes Labs", "email": "roli@hermes-labs.ai" },
+  "homepage": "https://hermes-labs.ai/open-source",
+  "repository": "https://github.com/hermes-labs-ai/quick-gate-python",
+  "license": "Apache-2.0"
+}
