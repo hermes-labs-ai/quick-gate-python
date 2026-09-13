@@ -49,7 +49,19 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
       - run: pip install -e ".[dev]"
-      - run: pytest tests/ -v --tb=short
+      - name: Run PyGate full quality gate
+        if: matrix.python-version == '3.12'
+        uses: ./
+        with:
+          mode: full
+          repair: "false"
+          python-version: "3.12"
+          render-summary: "true"
+          fail-on-error: "true"
+          artifact-name: pygate-ci-python-3-12
+      - name: Run pytest suite
+        if: matrix.python-version != '3.12'
+        run: pytest tests/ -v --tb=short
 
   integration:
     needs: [lint, typecheck]

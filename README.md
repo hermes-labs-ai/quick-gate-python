@@ -287,6 +287,7 @@ The root action accepts these inputs:
 | `changed-files` | empty | Optional path to newline-delimited or JSON-list changed paths. |
 | `artifact-name` | `pygate-artifacts` | Caller-configurable uploaded artifact name. |
 | `fail-on-error` | `true` | When `true`, a final `fail` or `escalated` status fails the action; `false` is observation-only. |
+| `render-summary` | `false` | When `true`, adds a bounded Actions summary with only status, check counts, repair state, version, and source link. |
 
 It exposes these outputs:
 
