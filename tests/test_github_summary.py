@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from pygate import __version__
 from pygate.github_summary import render_summary
 
 
@@ -31,7 +32,7 @@ def test_summary_counts_known_checks_without_rendering_untrusted_artifact_conten
     assert "Status: pass" in summary
     assert "Checks: pass: 2, fail: 1, skipped: 0 (total: 3)" in summary
     assert "Repair: skipped" in summary
-    assert "Version: 0.3.1" in summary
+    assert f"Version: {__version__}" in summary
     assert "Source: [PyGate action source](https://github.com/hermes-labs-ai/quick-gate-python)" in summary
     assert "unsafe" not in summary
     assert "raw argv" not in summary

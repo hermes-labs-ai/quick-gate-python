@@ -77,6 +77,11 @@ pythonVersion = "3.10"
 typeCheckingMode = "basic"
 exclude = [".venv", "fixtures/lab/broken", "tests/action-fixture/fail.py"]
 
+[tool.pygate.commands]
+lint = "ruff check --output-format json src/ tests/"
+typecheck = "pyright --outputjson src/"
+test = "pytest --json-report --json-report-file=.pygate/pytest-report.json tests/ -v --tb=short"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-m 'not integration'"

@@ -49,6 +49,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
       - run: pip install -e ".[dev]"
+      - if: matrix.python-version == '3.12'
+        run: pip install "ruff~=0.16.1"
       - name: Run PyGate full quality gate
         if: matrix.python-version == '3.12'
         uses: ./
