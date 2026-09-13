@@ -31,6 +31,9 @@ inputs:
   fail-on-error:
     description: "Fail the action when quality gates fail or repair does not pass; set to false for observation-only reporting"
     default: "true"
+  render-summary:
+    description: "Render a bounded status-only summary in the GitHub Actions job summary"
+    default: "false"
 
 outputs:
   status:
@@ -66,6 +69,7 @@ runs:
         PYGATE_REPAIR: ${{ inputs.repair }}
         PYGATE_POST_COMMENT: ${{ inputs.post-comment }}
         PYGATE_FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
+        PYGATE_RENDER_SUMMARY: ${{ inputs.render-summary }}
         PYGATE_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
         PYGATE_CHANGED_FILES: ${{ inputs.changed-files }}
       run: |
@@ -80,7 +84,7 @@ runs:
             ;;
         esac
 
-        for input_name in PYGATE_REPAIR PYGATE_POST_COMMENT PYGATE_FAIL_ON_ERROR; do
+        for input_name in PYGATE_REPAIR PYGATE_POST_COMMENT PYGATE_FAIL_ON_ERROR PYGATE_RENDER_SUMMARY; do
           input_value="${!input_name}"
           case "$input_value" in
             true|false)
@@ -413,6 +417,19 @@ runs:
         echo "Initial gate status: ${GATE_STATUS:-unavailable}"
         echo "Repair status: ${REPAIR_STATUS:-unavailable}"
         echo "Infrastructure failure: $infrastructure_failure"
+
+    - name: Render safe job summary
+      if: always() && inputs.render-summary == 'true'
+      shell: bash
+      env:
+        FINAL_STATUS: ${{ steps.final.outputs.status }}
+        REPAIR_STATUS: ${{ steps.repair.outputs.status || steps.repair-skip.outputs.status }}
+      run: |
+        python -m pygate.github_summary \
+          --failures .pygate/failures.json \
+          --status "$FINAL_STATUS" \
+          --repair-status "$REPAIR_STATUS" \
+          --output "$GITHUB_STEP_SUMMARY"
 
     - name: Enforce action outcome
       if: always()

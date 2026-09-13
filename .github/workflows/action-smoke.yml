@@ -21,6 +21,7 @@ jobs:
           - case: pass-default
             fixture: pass
             repair: false
+            render-summary: true
             changed-files-input: false
             assert-unchanged: true
             fail-on-error: true
@@ -217,6 +218,7 @@ jobs:
           fail-on-error: ${{ matrix.fail-on-error }}
           changed-files: ${{ matrix.changed-files-input && '.pygate-supplied-files.txt' || '' }}
           artifact-name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
+          render-summary: ${{ matrix.render-summary || 'false' }}
 
       - name: Run the checked-out root action with explicit repair opt-in
         id: gate-repair
@@ -230,6 +232,7 @@ jobs:
           fail-on-error: ${{ matrix.fail-on-error }}
           changed-files: ${{ matrix.changed-files-input && '.pygate-supplied-files.txt' || '' }}
           artifact-name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
+          render-summary: ${{ matrix.render-summary || 'false' }}
 
       - name: Record and assert the action outcome and declared status
         if: always()
@@ -385,6 +388,8 @@ jobs:
           test "$preflight_line" -lt "$changes_line"
           grep -F 'caller-owned-dependencies' "$action_file"
           grep -F 'pytest_jsonreport' "$action_file"
+          grep -F 'render-summary' "$action_file"
+          grep -F 'name: Render safe job summary' "$action_file"
           grep -F 'inputs.mode == '\''full'\''' "$action_file"
           grep -F 'case: full-success' action-source/.github/workflows/action-smoke.yml
           grep -F 'case: canary-no-pytest' action-source/.github/workflows/action-smoke.yml
