@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "quick-gate-python",
+  "description": "The Quick Gate Python (PyGate) Claude Code plugin from Hermes Labs.",
+  "owner": {
+    "name": "Hermes Labs",
+    "email": "roli@hermes-labs.ai",
+    "url": "https://github.com/hermes-labs-ai"
+  },
+  "plugins": [
+    {
+      "name": "quick-gate-python",
+      "source": ".",
+      "description": "Python quality gate CLI for Ruff, Pyright, and pytest with bounded auto-repair and escalation artifacts",
+      "category": "development",
+      "homepage": "https://hermes-labs.ai/open-source"
+    }
+  ]
+}
