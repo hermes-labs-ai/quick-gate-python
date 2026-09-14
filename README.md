@@ -399,7 +399,7 @@ pyright src/
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidance and [`SECURITY.md`](SECURITY.md) for vulnerability reporting and execution-safety notes.
 
-## Where quick-gate-python is used
+## Listed in
 
 [cleder/awesome-python-testing](https://github.com/cleder/awesome-python-testing/pull/108)
 lists quick-gate-python (PyPI `pygate-ci`) among Python testing tools (merged
