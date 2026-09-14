@@ -117,7 +117,17 @@ def main(argv: list[str] | None = None) -> None:
         input_path = args.input
         if not Path(input_path).is_absolute():
             input_path = str(cwd / input_path)
-        result = execute_summarize(input_path=input_path, cwd=cwd)
+        try:
+            result = execute_summarize(input_path=input_path, cwd=cwd)
+        except OSError as exc:
+            print(f"[pygate error] cannot read --input {input_path}: {exc}", file=sys.stderr)
+            sys.exit(2)
+        except json.JSONDecodeError as exc:
+            print(
+                f"[pygate error] --input {input_path} is not valid JSON: {exc}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
         print(json.dumps(result, indent=2))
         sys.exit(0)
 
@@ -125,11 +135,21 @@ def main(argv: list[str] | None = None) -> None:
         input_path = args.input
         if not Path(input_path).is_absolute():
             input_path = str(cwd / input_path)
-        result = execute_repair(
-            input_path=input_path,
-            max_attempts=args.max_attempts,
-            cwd=cwd,
-        )
+        try:
+            result = execute_repair(
+                input_path=input_path,
+                max_attempts=args.max_attempts,
+                cwd=cwd,
+            )
+        except OSError as exc:
+            print(f"[pygate error] cannot read --input {input_path}: {exc}", file=sys.stderr)
+            sys.exit(2)
+        except json.JSONDecodeError as exc:
+            print(
+                f"[pygate error] --input {input_path} is not valid JSON: {exc}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
         print(json.dumps(result, indent=2))
         status = result.get("status", "")
         if status == "pass":

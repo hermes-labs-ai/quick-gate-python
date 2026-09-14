@@ -69,6 +69,44 @@ class TestCLIParsing:
             main(["repair"])
         assert exc.value.code != 0
 
+    def test_summarize_missing_input_exits_cleanly(self, capsys, tmp_path: Path):
+        missing = tmp_path / "does-not-exist.json"
+        with pytest.raises(SystemExit) as exc:
+            main(["summarize", "--input", str(missing)])
+        assert exc.value.code == 2
+        captured = capsys.readouterr()
+        assert "Traceback" not in captured.err
+        assert "cannot read --input" in captured.err
+
+    def test_summarize_malformed_json_input_exits_cleanly(self, capsys, tmp_path: Path):
+        bad = tmp_path / "failures.json"
+        bad.write_text("{not valid json")
+        with pytest.raises(SystemExit) as exc:
+            main(["summarize", "--input", str(bad)])
+        assert exc.value.code == 2
+        captured = capsys.readouterr()
+        assert "Traceback" not in captured.err
+        assert "not valid JSON" in captured.err
+
+    def test_repair_missing_input_exits_cleanly(self, capsys, tmp_path: Path):
+        missing = tmp_path / "does-not-exist.json"
+        with pytest.raises(SystemExit) as exc:
+            main(["repair", "--input", str(missing)])
+        assert exc.value.code == 2
+        captured = capsys.readouterr()
+        assert "Traceback" not in captured.err
+        assert "cannot read --input" in captured.err
+
+    def test_repair_malformed_json_input_exits_cleanly(self, capsys, tmp_path: Path):
+        bad = tmp_path / "failures.json"
+        bad.write_text("{not valid json")
+        with pytest.raises(SystemExit) as exc:
+            main(["repair", "--input", str(bad)])
+        assert exc.value.code == 2
+        captured = capsys.readouterr()
+        assert "Traceback" not in captured.err
+        assert "not valid JSON" in captured.err
+
 
 class TestCLIRun:
     @patch("pygate.cli.evaluate")
