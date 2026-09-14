@@ -76,7 +76,20 @@ def main(argv: list[str] | None = None) -> None:
             changed_files_path = Path(args.changed_files)
             if not changed_files_path.is_absolute():
                 changed_files_path = cwd / changed_files_path
-            changed_files = load_changed_files(changed_files_path)
+            try:
+                changed_files = load_changed_files(changed_files_path)
+            except OSError as exc:
+                print(
+                    f"[pygate error] cannot read --changed-files {changed_files_path}: {exc}",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
+            except json.JSONDecodeError as exc:
+                print(
+                    f"[pygate error] --changed-files {changed_files_path} is not valid JSON or text: {exc}",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
 
         mode = RunMode(args.mode)
         if args.output_dir:
