@@ -40,6 +40,25 @@ class TestCLIParsing:
         assert exc.value.code == 0
         assert mock_evaluate.call_args.kwargs["checked_paths"] == ["."]
 
+    def test_run_missing_changed_files_exits_cleanly(self, capsys, tmp_path: Path):
+        missing = tmp_path / "does-not-exist.txt"
+        with pytest.raises(SystemExit) as exc:
+            main(["run", "--mode", "canary", "--changed-files", str(missing)])
+        assert exc.value.code == 2
+        captured = capsys.readouterr()
+        assert "Traceback" not in captured.err
+        assert "cannot read --changed-files" in captured.err
+
+    def test_run_malformed_json_changed_files_exits_cleanly(self, capsys, tmp_path: Path):
+        bad = tmp_path / "changed.json"
+        bad.write_text("[not valid json")
+        with pytest.raises(SystemExit) as exc:
+            main(["run", "--mode", "canary", "--changed-files", str(bad)])
+        assert exc.value.code == 2
+        captured = capsys.readouterr()
+        assert "Traceback" not in captured.err
+        assert "not valid JSON" in captured.err
+
     def test_summarize_requires_input(self):
         with pytest.raises(SystemExit) as exc:
             main(["summarize"])
