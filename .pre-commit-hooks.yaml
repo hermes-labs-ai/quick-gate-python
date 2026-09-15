@@ -1,0 +1,16 @@
+- id: pygate
+  name: pygate canary gate (ruff + pyright)
+  description: Run the deterministic pygate canary gate (Ruff + Pyright) against the repo.
+  entry: pygate run --mode canary
+  language: python
+  pass_filenames: false
+  always_run: true
+  verbose: true
+- id: pygate-full
+  name: pygate full gate (ruff + pyright + pytest)
+  description: Run the full pygate gate (Ruff, Pyright, pytest) against the repo.
+  entry: pygate run --mode full
+  language: python
+  pass_filenames: false
+  always_run: true
+  verbose: true

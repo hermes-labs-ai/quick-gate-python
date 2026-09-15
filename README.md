@@ -336,6 +336,33 @@ shown above; do not use a mutable branch reference.
 
 PyGate never grants merge authority. A workflow still decides whether a failed, timed-out, or escalated job blocks a pull request, and any comment or artifact should be treated as untrusted command output before security-sensitive rendering.
 
+## Pre-commit
+
+The repository ships a native [`.pre-commit-hooks.yaml`](.pre-commit-hooks.yaml)
+with two hook ids: `pygate` (canary mode — Ruff + Pyright) and `pygate-full`
+(full mode — Ruff + Pyright + pytest). Add the hook to `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/hermes-labs-ai/quick-gate-python
+    rev: main  # no tagged release contains .pre-commit-hooks.yaml yet; pin to a commit once one does
+    hooks:
+      - id: pygate
+```
+
+Install and run it:
+
+```bash
+pre-commit install
+pre-commit run pygate
+```
+
+Both hooks run against the whole working tree (`pass_filenames: false`,
+`always_run: true`) rather than only staged files, matching how `pygate run`
+snapshots the repo. `pygate` and `pygate-full` exit non-zero on a `fail`
+verdict and on internal errors, so either blocks the commit; a `pass` verdict
+exits 0.
+
 ## Privacy, egress, and safety
 
 - PyGate itself does not make network requests or silently install packages.
