@@ -19,6 +19,13 @@ PyGate is published as `pygate-ci` and installs the `pygate` command. It support
 python -m pip install pygate-ci ruff pyright pytest pytest-json-report
 ~~~
 
+Verify the installation:
+
+~~~bash
+pygate --version
+# pygate 0.3.1
+~~~
+
 Run a whole-project canary gate:
 
 ~~~bash
