@@ -7,7 +7,11 @@ the manifest is small and hand-authored.
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_TEXT = (REPO_ROOT / ".pre-commit-hooks.yaml").read_text(encoding="utf-8")
@@ -48,3 +52,36 @@ def test_readme_documents_the_precommit_hook():
     assert ".pre-commit-hooks.yaml" in readme
     assert "id: pygate" in readme
     assert "pre-commit run pygate" in readme
+
+
+def test_both_hooks_install_the_gate_tools_they_shell_out_to():
+    # Installing pygate brings its runtime deps (pydantic, tomli) only; Ruff,
+    # Pyright, and pytest are [dev] extras and pre-commit's hook environment is
+    # isolated, so without these the first run in a clean environment reports
+    # every gate as "missing" (exit code 127) instead of gating anything.
+    assert MANIFEST_LINES.count("    - ruff==0.16.8") == 2
+    assert MANIFEST_LINES.count("    - pyright==1.1.414") == 2
+    assert MANIFEST_LINES.count("    - pytest==9.1.1") == 1
+    assert MANIFEST_LINES.count("    - pytest-json-report==1.5.0") == 1
+    assert MANIFEST_LINES.count("  additional_dependencies:") == 2
+
+
+def test_readme_documents_the_hook_dependencies():
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    for pin in ("ruff==0.16.8", "pyright==1.1.414", "pytest==9.1.1", "pytest-json-report==1.5.0"):
+        assert pin in readme, f"README does not document the hook pin {pin!r}"
+    # pre-commit replaces (never merges) the manifest list when a consumer sets
+    # additional_dependencies, so the caller-owned case has to say so.
+    assert "additional_dependencies" in readme
+    assert "replaces" in readme
+
+
+@pytest.mark.skipif(shutil.which("pre-commit") is None, reason="pre-commit is not installed")
+def test_manifest_passes_precommits_own_validation():
+    result = subprocess.run(
+        ["pre-commit", "validate-manifest", str(REPO_ROOT / ".pre-commit-hooks.yaml")],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, f"{result.stdout}\n{result.stderr}"

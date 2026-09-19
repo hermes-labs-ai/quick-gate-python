@@ -368,7 +368,65 @@ Both hooks run against the whole working tree (`pass_filenames: false`,
 `always_run: true`) rather than only staged files, matching how `pygate run`
 snapshots the repo. `pygate` and `pygate-full` exit non-zero on a `fail`
 verdict and on internal errors, so either blocks the commit; a `pass` verdict
-exits 0.
+exits 0. The hook entry writes no artifacts into your repository: it prints the
+`gate-result/v1` document and leaves the working tree untouched.
+
+### What the hook environment installs
+
+pre-commit builds one isolated environment per hook. Installing PyGate there
+brings only its runtime dependencies (`pydantic`, plus `tomli` on Python 3.10);
+Ruff, Pyright, and pytest are `[dev]` extras and are not part of that install.
+The manifest therefore declares the gate tools each hook shells out to:
+
+| Hook | `additional_dependencies` |
+| --- | --- |
+| `pygate` | `ruff==0.16.8`, `pyright==1.1.414` |
+| `pygate-full` | the same two, plus `pytest==9.1.1` and `pytest-json-report==1.5.0` |
+
+The pins are exact rather than ranges. A consumer pins `rev` to an immutable
+commit, so a range would still let the installed tool version drift with the
+install date and change the verdict for the same pinned hook. Bump them
+deliberately, or override them in your own config (see below).
+
+`pytest-json-report` is present because PyGate's report-backed test findings
+read a pytest JSON report, which is the shape the documented
+`[tool.pygate.commands] test` command emits; the default hook entry runs pytest
+without it and falls back to exit-code findings.
+
+The Pyright distribution on PyPI provisions its own Node runtime the first time
+it runs, so the first hook run needs network access — as does any pre-commit
+environment install.
+
+### Project test dependencies stay caller-owned
+
+`pygate-full` runs your test suite inside that same isolated environment. The
+environment contains the pinned tools above and nothing else: not your project,
+and not the third-party packages your tests import. If your suite needs them,
+declare them on the hook:
+
+```yaml
+repos:
+  - repo: https://github.com/hermes-labs-ai/quick-gate-python
+    rev: main  # no tagged release contains .pre-commit-hooks.yaml yet; pin to a commit once one does
+    hooks:
+      - id: pygate-full
+        additional_dependencies:
+          - ruff==0.16.8
+          - pyright==1.1.414
+          - pytest==9.1.1
+          - pytest-json-report==1.5.0
+          - httpx==0.28.1        # your own test dependencies
+```
+
+`additional_dependencies` in your config **replaces** the manifest list rather
+than extending it, so repeat the pins you still want.
+
+PyGate does not promise that `pygate-full` fits every project. A suite that has
+to import the project itself, or that depends on a locally built extension or a
+service fixture, is not reachable from an isolated hook environment. For those
+projects run `pygate` as the pre-commit hook and keep full mode where the
+project's own environment already exists — CI, or a `language: system` local
+hook that calls the `pygate` you installed yourself.
 
 ## Privacy, egress, and safety
 

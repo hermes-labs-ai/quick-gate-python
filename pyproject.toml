@@ -39,6 +39,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=9.0.3",
+    "pre-commit>=4.0",
     "pytest-json-report>=1.5",
     "ruff>=0.15.11",
     "pyright>=1.1",
