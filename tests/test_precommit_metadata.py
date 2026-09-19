@@ -7,6 +7,7 @@ the manifest is small and hand-authored.
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -85,3 +86,19 @@ def test_manifest_passes_precommits_own_validation():
         timeout=60,
     )
     assert result.returncode == 0, f"{result.stdout}\n{result.stderr}"
+
+
+# The documented hook `rev:`, which pins the consumer's hook repository.
+DOCUMENTED_REV = re.compile(r"^\s*rev: (\S+)", re.MULTILINE)
+
+
+def test_readme_pins_the_hook_repo_to_an_immutable_commit():
+    # Same policy as the root action: a mutable branch reference is not a pin,
+    # and the manifest's exact tool pins only mean something behind one.
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    revs = DOCUMENTED_REV.findall(readme)
+
+    assert revs, "README documents no pre-commit rev"
+    for rev in revs:
+        assert re.fullmatch(r"[0-9a-f]{40}", rev), f"README pins the hook repo at {rev!r}, not a commit SHA"
+    assert len(set(revs)) == 1, f"Documented hook revs disagree: {sorted(set(revs))}"

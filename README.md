@@ -352,7 +352,7 @@ with two hook ids: `pygate` (canary mode — Ruff + Pyright) and `pygate-full`
 ```yaml
 repos:
   - repo: https://github.com/hermes-labs-ai/quick-gate-python
-    rev: main  # no tagged release contains .pre-commit-hooks.yaml yet; pin to a commit once one does
+    rev: 00e561917dd1772252773aef060c07c2b8719377  # immutable commit; no tagged release contains .pre-commit-hooks.yaml yet
     hooks:
       - id: pygate
 ```
@@ -407,7 +407,7 @@ declare them on the hook:
 ```yaml
 repos:
   - repo: https://github.com/hermes-labs-ai/quick-gate-python
-    rev: main  # no tagged release contains .pre-commit-hooks.yaml yet; pin to a commit once one does
+    rev: 00e561917dd1772252773aef060c07c2b8719377  # immutable commit; no tagged release contains .pre-commit-hooks.yaml yet
     hooks:
       - id: pygate-full
         additional_dependencies:

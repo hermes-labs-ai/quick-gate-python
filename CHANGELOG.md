@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a first run, and of the caller-owned project test dependencies that an isolated `pygate-full`
   environment cannot supply.
 
+### Changed
+
+- The documented pre-commit `rev` is an immutable commit
+  (`00e561917dd1772252773aef060c07c2b8719377`, the working hook manifest) instead of the mutable
+  `main` branch, matching the root action's pinning policy, and a regression test keeps it a
+  40-character commit SHA. `llms.txt` documents the hook route with the same pin.
+
 ## [0.3.1] - 2026-09-12
 
 ### Fixed
