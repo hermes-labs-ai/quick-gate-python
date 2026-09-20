@@ -316,6 +316,7 @@ The root action accepts these inputs:
 | `artifact-name` | `pygate-artifacts` | Caller-configurable uploaded artifact name. |
 | `fail-on-error` | `true` | When `true`, a final `fail` or `escalated` status fails the action; `false` is observation-only. |
 | `render-summary` | `false` | When `true`, adds a bounded Actions summary with only status, check counts, repair state, version, and source link. |
+| `render-annotations` | `false` | When `true`, adds up to 100 GitHub annotations for diagnostics with one relative file and a positive exact line. |
 
 It exposes these outputs:
 
@@ -330,6 +331,12 @@ It exposes these outputs:
 | `failures-json` | Path to `.pygate/failures.json` when the gate runs. |
 
 The action uploads `.pygate/` as an action-owned artifact, including hidden files. It includes `gate-result.json`, `failures.json`, `run-metadata.json`, and, in full mode, the pytest report; repair and summary artifacts are included when produced. Treat command output in these artifacts as untrusted data. The default artifact name is `pygate-artifacts`; set `artifact-name` to avoid collisions in matrices.
+
+### Optional file annotations
+
+Set `render-annotations: "true"` on a revision that includes this input to show supported failures beside their file and line in GitHub Actions. Annotations use fixed generic messages; they do not include raw tool output. Diagnostics without one unambiguous relative file and a positive line are skipped, including test summaries without an exact location. Annotation rendering does not change the gate result or require additional token permissions.
+
+The renderer accepts a failure receipt of up to 1 MB and emits at most 100 annotations. Use the uploaded receipt for the full diagnostics when there are more failures or unsupported locations.
 
 ### Pinning policy
 

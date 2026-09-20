@@ -34,6 +34,9 @@ inputs:
   render-summary:
     description: "Render a bounded status-only summary in the GitHub Actions job summary"
     default: "false"
+  render-annotations:
+    description: "Emit file and line annotations for findings with one exact safe location"
+    default: "false"
 
 outputs:
   status:
@@ -70,6 +73,7 @@ runs:
         PYGATE_POST_COMMENT: ${{ inputs.post-comment }}
         PYGATE_FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
         PYGATE_RENDER_SUMMARY: ${{ inputs.render-summary }}
+        PYGATE_RENDER_ANNOTATIONS: ${{ inputs.render-annotations }}
         PYGATE_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
         PYGATE_CHANGED_FILES: ${{ inputs.changed-files }}
       run: |
@@ -84,7 +88,7 @@ runs:
             ;;
         esac
 
-        for input_name in PYGATE_REPAIR PYGATE_POST_COMMENT PYGATE_FAIL_ON_ERROR PYGATE_RENDER_SUMMARY; do
+        for input_name in PYGATE_REPAIR PYGATE_POST_COMMENT PYGATE_FAIL_ON_ERROR PYGATE_RENDER_SUMMARY PYGATE_RENDER_ANNOTATIONS; do
           input_value="${!input_name}"
           case "$input_value" in
             true|false)
@@ -430,6 +434,11 @@ runs:
           --status "$FINAL_STATUS" \
           --repair-status "$REPAIR_STATUS" \
           --output "$GITHUB_STEP_SUMMARY"
+
+    - name: Render file annotations
+      if: always() && inputs.render-annotations == 'true'
+      shell: bash
+      run: python -m pygate.github_annotations --failures .pygate/failures.json
 
     - name: Enforce action outcome
       if: always()

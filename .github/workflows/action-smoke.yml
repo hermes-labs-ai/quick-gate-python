@@ -31,6 +31,7 @@ jobs:
             expected-status: pass
             expected-repair-status: skipped
           - case: fail-default
+            render-annotations: true
             fixture: fail
             repair: false
             changed-files-input: false
@@ -219,6 +220,7 @@ jobs:
           changed-files: ${{ matrix.changed-files-input && '.pygate-supplied-files.txt' || '' }}
           artifact-name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
           render-summary: ${{ matrix.render-summary || 'false' }}
+          render-annotations: ${{ matrix.render-annotations || 'false' }}
 
       - name: Run the checked-out root action with explicit repair opt-in
         id: gate-repair
@@ -233,6 +235,7 @@ jobs:
           changed-files: ${{ matrix.changed-files-input && '.pygate-supplied-files.txt' || '' }}
           artifact-name: pygate-action-${{ matrix.case }}-${{ github.run_attempt }}
           render-summary: ${{ matrix.render-summary || 'false' }}
+          render-annotations: ${{ matrix.render-annotations || 'false' }}
 
       - name: Record and assert the action outcome and declared status
         if: always()
