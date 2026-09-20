@@ -3,6 +3,16 @@
   description: Run the deterministic pygate canary gate (Ruff + Pyright) against the repo.
   entry: pygate run --mode canary
   language: python
+  # pygate's install brings only its runtime deps (pydantic, tomli); the gate
+  # tools it shells out to live in the [dev] extra, which pre-commit's isolated
+  # hook environment never installs. Without these pins the first run in a
+  # clean environment reports "executable not found" for every gate.
+  # Exact pins, not ranges: a consumer pins `rev` to an immutable commit, so a
+  # range would still let the installed tool version drift with the install
+  # date and change the verdict for the same pinned hook. Bump deliberately.
+  additional_dependencies:
+    - ruff==0.16.8
+    - pyright==1.1.414
   pass_filenames: false
   always_run: true
   verbose: true
@@ -11,6 +21,16 @@
   description: Run the full pygate gate (Ruff, Pyright, pytest) against the repo.
   entry: pygate run --mode full
   language: python
+  # Full mode additionally shells out to pytest and reads its JSON report.
+  # These pins cover the test runner itself only. The project's own test
+  # dependencies stay caller-owned: this isolated environment does not contain
+  # them, and a suite that imports them needs its own `additional_dependencies`
+  # in .pre-commit-config.yaml (which replaces this list, so repeat it).
+  additional_dependencies:
+    - ruff==0.16.8
+    - pyright==1.1.414
+    - pytest==9.1.1
+    - pytest-json-report==1.5.0
   pass_filenames: false
   always_run: true
   verbose: true
