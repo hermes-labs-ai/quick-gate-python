@@ -1,4 +1,5 @@
 """Render bounded GitHub Actions annotations for exact PyGate locations."""
+
 from __future__ import annotations
 
 import argparse
