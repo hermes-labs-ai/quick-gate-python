@@ -242,7 +242,7 @@ The current root action dependencies run on Node.js 24. GitHub-hosted runners ar
 
 The repository ships the root Marketplace action at [`action.yml`](action.yml) and a copyable example at [`.github/workflows/example-usage.yml`](.github/workflows/example-usage.yml). Pin the root action to this currently audited immutable commit:
 
-`hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba`
+`hermes-labs-ai/quick-gate-python@aef81b5e832f98aaef02b0a1f64f8eed277e92f1`
 
 ~~~yaml
 name: "Example: PyGate Quality Gates"
@@ -261,7 +261,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba
+      - uses: hermes-labs-ai/quick-gate-python@aef81b5e832f98aaef02b0a1f64f8eed277e92f1
         with:
           mode: canary
           python-version: "3.12"
@@ -292,7 +292,7 @@ permissions:
   pull-requests: write
 
 steps:
-  - uses: hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba
+  - uses: hermes-labs-ai/quick-gate-python@aef81b5e832f98aaef02b0a1f64f8eed277e92f1
     with:
       mode: canary
       python-version: "3.12"
@@ -340,7 +340,7 @@ The renderer accepts a failure receipt of up to 1 MB and emits at most 100 annot
 
 ### Pinning policy
 
-Use the root action at an immutable commit. The examples use the audited commit `39b27c74fa5934c21d4068f3aee06c766e8899ba`.
+Use the root action at an immutable commit. The examples use the annotation-capable commit `aef81b5e832f98aaef02b0a1f64f8eed277e92f1`.
 
 The `v0.2.1` release is the first package tag that also contains the root
 [`action.yml`](action.yml), so that tag is a valid convenience reference.

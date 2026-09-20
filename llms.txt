@@ -27,7 +27,7 @@ Pre-commit hook (native `.pre-commit-hooks.yaml`, pinned to an immutable commit)
   `additional_dependencies` replaces the manifest list rather than extending it
 
 Root GitHub Action quickstart (audited immutable commit):
-- `hermes-labs-ai/quick-gate-python@39b27c74fa5934c21d4068f3aee06c766e8899ba`
+- `hermes-labs-ai/quick-gate-python@aef81b5e832f98aaef02b0a1f64f8eed277e92f1`
 - grant `contents: read` only for the blocking read-only baseline
 - use `mode: canary`, `fail-on-error: "true"`, and leave repair/comments disabled
 - `v0.2.1` is the first release tag that contains the root `action.yml` and is a valid convenience
