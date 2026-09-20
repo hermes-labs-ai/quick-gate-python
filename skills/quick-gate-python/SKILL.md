@@ -9,7 +9,7 @@ result. PyGate itself makes no network requests and installs nothing
 (https://github.com/hermes-labs-ai/quick-gate-python).
 
 1. Pick a runner: if `pygate --version` works, use the bare `pygate` command
-   below. Otherwise use `uvx --from pygate-ci==0.3.1 pygate` (zero-install).
+   below. Otherwise use `uvx --from pygate-ci==0.3.2 pygate` (zero-install).
    Keep the exact version pin so it does not fetch an unreviewed newer
    release, and keep using the runner you picked for every later step.
 2. PyGate does not bundle the tools it gates. Confirm `ruff` and `pyright`
