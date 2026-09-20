@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-09-19
+
 ### Fixed
 
+- CLI commands now report missing, unreadable, or malformed inputs for
+  `run --changed-files`, `summarize --input`, and `repair --input` as clear
+  diagnostics with exit code 2 instead of exposing raw tracebacks.
 - Pre-commit hooks now install the gate tools they run. `language: python` installed PyGate's
   runtime dependencies only, so the first run in a clean environment reported every gate as
   `missing` (exit code 127) instead of gating anything: Ruff, Pyright, and pytest are `[dev]`
@@ -18,14 +23,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The root GitHub Action can optionally render a bounded, status-only job summary
+  with the final status, recognized check counts, repair state, PyGate version,
+  and source link; the action smoke fixture covers the enabled path.
+- The repository root is now a portable Agent Plugin with one canonical skill,
+  host manifests for Agent Plugins, Claude Code, and Gemini CLI, and local
+  Claude Code and Codex marketplace entries plus install/readback guidance.
+- Added machine-readable CodeMeta software metadata.
 - Manifest regression coverage for the hook dependency pins, plus a check that
   `.pre-commit-hooks.yaml` passes `pre-commit validate-manifest`.
+- Added regression coverage for the action summary, clean CLI input errors, and
+  plugin, marketplace, Gemini, and pre-commit integration surfaces.
 - README documentation of the hook pins, of the Node runtime the Pyright distribution fetches on
   a first run, and of the caller-owned project test dependencies that an isolated `pygate-full`
   environment cannot supply.
 
 ### Changed
 
+- README and `llms.txt` now document portable plugin installs and native
+  pre-commit routes; README also documents the action summary option and current
+  version readback.
 - The documented pre-commit `rev` is an immutable commit
   (`00e561917dd1772252773aef060c07c2b8719377`, the working hook manifest) instead of the mutable
   `main` branch, matching the root action's pinning policy, and a regression test keeps it a
@@ -136,7 +153,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Composite GitHub Action for CI integration
 - Structured artifacts: failures.json, run-metadata.json, agent-brief.json/md, repair-report.json, escalation.json
 
-[Unreleased]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/hermes-labs-ai/quick-gate-python/compare/v0.2.1...v0.2.2
