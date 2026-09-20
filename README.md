@@ -23,7 +23,7 @@ Verify the installation:
 
 ~~~bash
 pygate --version
-# pygate 0.3.1
+# pygate 0.3.2
 ~~~
 
 Run a whole-project canary gate:
@@ -66,7 +66,7 @@ The repository root is also a portable [Agent Plugin](https://agent-plugins.org)
 (`plugin.json`, Agent Plugins 1.0.0) that ships one skill,
 [`skills/quick-gate-python/SKILL.md`](skills/quick-gate-python/SKILL.md). It
 teaches a coding agent to run `pygate` (or the pinned
-`uvx --from pygate-ci==0.3.1 pygate`) and report the result without
+`uvx --from pygate-ci==0.3.2 pygate`) and report the result without
 overclaiming.
 
 | Host | Install | Read back |
