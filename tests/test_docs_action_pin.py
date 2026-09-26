@@ -7,7 +7,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # Every place that tells a consumer how to reference the root action.
 DOCUMENTED_PIN_SOURCES = (
-    "README.md",
     "SECURITY.md",
     "llms.txt",
     ".github/workflows/example-usage.yml",
