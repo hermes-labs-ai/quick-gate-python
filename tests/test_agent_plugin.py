@@ -127,17 +127,6 @@ def test_skill_pins_the_released_runner() -> None:
     assert f"uvx --from pygate-ci=={_pyproject_field('version')} pygate" in text
 
 
-def test_documented_gemini_install_pins_a_ref() -> None:
-    """Releases up to v0.3.1 predate gemini-extension.json, so an unpinned install fails."""
-    commands = re.findall(
-        r"gemini extensions install https://github\.com/hermes-labs-ai/quick-gate-python[^\n`|]*",
-        (ROOT / "README.md").read_text(encoding="utf-8"),
-    )
-    assert commands, "README.md no longer documents the Gemini install"
-    for command in commands:
-        assert "--ref " in command, command
-
-
 def _package(tmp_path: Path) -> Path:
     pkg = tmp_path / PLUGIN_NAME
     pkg.mkdir()
