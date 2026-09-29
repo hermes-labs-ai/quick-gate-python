@@ -504,6 +504,21 @@ pyright src/
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidance and [`SECURITY.md`](SECURITY.md) for vulnerability reporting and execution-safety notes.
 
+## Relationship to PyGate and Quick Gate
+
+Three Hermes Labs tools share one result contract and stay separate on purpose:
+
+| Tool | Package / command | Role |
+| --- | --- | --- |
+| **HermesGate** ([hermes-gate](https://github.com/hermes-labs-ai/hermes-gate)) | PyPI `hermes-gate`, `hermes-gate` | Language-agnostic completion rail: runs a repository's declared checks and binds a PASS to exact content and tool versions in a receipt. |
+| **PyGate** ([quick-gate-python](https://github.com/hermes-labs-ai/quick-gate-python)) | PyPI `pygate-ci`, `pygate` | Python check primitive: normalizes Ruff, Pyright, and pytest into one `gate-result/v1`, with bounded lint repair. |
+| **Quick Gate** ([quick-gate-js](https://github.com/hermes-labs-ai/quick-gate-js)) | npm `quick-gate`, `quick-gate` | JavaScript/TypeScript check primitive: normalizes ESLint, TypeScript, build, and Lighthouse into one `gate-result/v1`, with bounded repair. |
+
+- **Shared primitive:** the `gate-result/v1` schema (`schemas/gate-result-v1.schema.json`) is byte-identical in all three repositories. PyGate and Quick Gate emit it; HermesGate validates it.
+- **Composition is optional:** HermesGate can wrap PyGate (0.2.0+) or Quick Gate (0.2.3+) through an opt-in [primitive adapter](https://github.com/hermes-labs-ai/hermes-gate#optional-primitive-adapters); it never installs them, and an absent, old, or invalid primitive is an error, not a pass. Each primitive is fully usable on its own.
+- **Which to use:** use PyGate or Quick Gate alone to get one normalized result for a Python or JS/TS project. Use HermesGate when you need a receipt proving which exact bytes passed which declared commands, across any stack.
+- **Names and interfaces are stable:** the three products keep their own names, commands, versions, and release cadence; this relationship adds no API change.
+
 ## Listed in
 
 [cleder/awesome-python-testing](https://github.com/cleder/awesome-python-testing/pull/108)
