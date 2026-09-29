@@ -15,7 +15,7 @@ Hermes Labs is an agentic infrastructure company building the reliability layer 
 
 </div>
 
-Python maintainers usually meet the same problem at the worst possible time: a pull request has several tool outputs, each with its own format and failure order, and someone must decide what to fix first. PyGate gives a CI job or follow-up agent one fail-fast result, preserves the underlying command evidence, and stops deterministic repair within an explicit budget.
+Python maintainers usually meet the same problem at the worst possible time: a pull request has several tool outputs, each with its own format and failure order, and someone must decide what to fix first. PyGate gives a CI job or follow-up agent one deterministic result, preserves the underlying command evidence, and stops deterministic repair within an explicit budget.
 
 ## First success
 

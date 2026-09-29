@@ -4,7 +4,7 @@ PyGate is a deterministic Python CI gate that wraps Ruff, Pyright, and pytest an
 
 ## Use it for
 
-- running one fail-fast gate over Python lint, typecheck, and test output
+- running one deterministic gate over Python lint, typecheck, and test output
 - generating machine-readable artifacts for follow-up agents or humans
 - attempting bounded deterministic repair before escalating
 
