@@ -137,6 +137,23 @@ def test_input_errors_exit_1_with_an_unknown_envelope(tmp_path):
     assert payload["data"]["result"] is None
 
 
+def test_an_invalid_config_is_an_input_error_envelope_not_a_traceback(tmp_path: Path) -> None:
+    (tmp_path / "pygate.toml").write_text("[gates]\ntest_in_canry = true\n", encoding="utf-8")
+    proc = subprocess.run(
+        [sys.executable, "-m", "pygate.evidence", "--mode", "canary", "--path", str(tmp_path)],
+        cwd=REPO_ROOT,
+        env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
+        text=True,
+        capture_output=True,
+        timeout=30,
+    )
+    payload = json.loads(proc.stdout, strict=True)
+    assert proc.returncode == 1
+    assert payload["status"] == "unknown"
+    assert payload["findings"][0]["id"] == "input.invalid-config"
+    assert "test_in_canry" in payload["findings"][0]["summary"]
+
+
 def test_overall_status_is_the_worst_finding_present():
     assert evidence.worst_status([]) == "pass"
     assert (

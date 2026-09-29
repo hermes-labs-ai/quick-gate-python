@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it no longer aborts partway through on a top-level directory symlink.
 - `pygate.toml` and `[tool.pygate]` config is now validated. Unknown keys and
   wrong value types (for example `allow_unsafe_shell = "false"`) exit 2 with an
-  `invalid pygate config` error instead of silently skipping gates.
+  `invalid pygate config` error instead of silently skipping gates;
+  `python -m pygate.evidence` reports it as an `input.invalid-config` envelope.
 
 ## [0.3.2] - 2026-09-19
 

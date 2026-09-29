@@ -34,6 +34,7 @@ from typing import Any
 
 from pygate import __version__
 from pygate.api import evaluate
+from pygate.config import ConfigError
 from pygate.models import RunMode
 
 ENVELOPE = "hermes.reliability-lab.result/1"
@@ -271,7 +272,10 @@ def main(argv: list[str] | None = None) -> int:
             str(cwd),
         )
     else:
-        result = envelope_for(mode=args.mode, cwd=cwd)
+        try:
+            result = envelope_for(mode=args.mode, cwd=cwd)
+        except ConfigError as exc:
+            result = input_error_envelope("input.invalid-config", str(exc), args.mode, str(cwd))
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return result["exitCode"]
