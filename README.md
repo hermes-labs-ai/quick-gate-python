@@ -122,7 +122,7 @@ pygate repair --input <failures.json> [--max-attempts N]
 
 Exit codes are:
 
-- `pygate run`: `0` for pass; `1` for fail or timeout.
+- `pygate run`: `0` for pass; `1` for fail or timeout; `2` for an invalid pygate config.
 - `pygate summarize`: `0` after writing the brief.
 - `pygate repair`: `0` when repair passes; `2` when it escalates.
 

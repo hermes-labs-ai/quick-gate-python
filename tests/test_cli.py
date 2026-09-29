@@ -40,6 +40,20 @@ class TestCLIParsing:
         assert exc.value.code == 0
         assert mock_evaluate.call_args.kwargs["checked_paths"] == ["."]
 
+    def test_run_with_invalid_config_exits_2_instead_of_skipping_gates(
+        self, capsys, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        (tmp_path / "pyproject.toml").write_text("[tool.pygate.gates]\ntest_in_canry = true\n")
+        monkeypatch.chdir(tmp_path)
+        with (
+            patch("pygate.api.run_deterministic_gates", return_value=([], [], [])) as gates,
+            pytest.raises(SystemExit) as exc,
+        ):
+            main(["run", "--mode", "canary"])
+        assert exc.value.code == 2
+        gates.assert_not_called()
+        assert "test_in_canry" in capsys.readouterr().err
+
     def test_run_missing_changed_files_exits_cleanly(self, capsys, tmp_path: Path):
         missing = tmp_path / "does-not-exist.txt"
         with pytest.raises(SystemExit) as exc:
