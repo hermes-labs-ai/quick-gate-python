@@ -2,7 +2,7 @@
   "@context": "https://w3id.org/codemeta/3.1",
   "@type": "SoftwareSourceCode",
   "name": "PyGate",
-  "description": "quick-gate-python (PyPI: pygate-ci) is a deterministic Python CI quality gate that normalizes Ruff, Pyright, and pytest results into one fail-fast decision, attempts bounded auto-repair, and escalates with machine-readable evidence for humans or agents when it cannot finish safely. A gate-and-escalate wrapper, not a lint dashboard.",
+  "description": "quick-gate-python (PyPI: pygate-ci) is a deterministic Python CI quality gate that normalizes Ruff, Pyright, and pytest results into one deterministic decision, attempts bounded auto-repair, and escalates with machine-readable evidence for humans or agents when it cannot finish safely. A gate-and-escalate wrapper, not a lint dashboard.",
   "codeRepository": "https://github.com/hermes-labs-ai/quick-gate-python",
   "version": "0.3.2",
   "license": "https://spdx.org/licenses/Apache-2.0",

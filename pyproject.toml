@@ -13,7 +13,7 @@ authors = [
     { name = "Hermes Labs", email = "roli@hermes-labs.ai" },
 ]
 keywords = [
-    "python", "quality-gate", "python-ci", "fail-fast", "lint", "typecheck",
+    "python", "quality-gate", "python-ci", "lint", "typecheck",
     "pytest", "auto-repair", "deterministic", "ruff", "pyright",
 ]
 classifiers = [
