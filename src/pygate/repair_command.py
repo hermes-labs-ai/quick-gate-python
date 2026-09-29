@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import time
 from pathlib import Path
@@ -34,20 +35,42 @@ def _backup_workspace(cwd: Path, backup_dir: Path) -> None:
     shutil.copytree(cwd, backup_dir, symlinks=True, ignore=shutil.ignore_patterns(*_BACKUP_EXCLUDES))
 
 
+def _remove_path(path: Path) -> None:
+    if path.is_symlink() or not path.is_dir():
+        path.unlink()
+    else:
+        shutil.rmtree(path)
+
+
 def _restore_workspace(cwd: Path, backup_dir: Path) -> None:
+    """Make ``cwd`` match ``backup_dir`` for every path the backup covered.
+
+    The backup skips ``_BACKUP_EXCLUDES`` names at *every* depth, so those
+    names are left untouched at every depth here too (otherwise a nested
+    ``dist/``, ``node_modules/`` or submodule ``.git`` would be deleted and
+    never restored). Symlinks are restored as symlinks and never followed.
+    """
+    backup_names = {item.name for item in backup_dir.iterdir()}
     for item in cwd.iterdir():
-        if item.name in _BACKUP_EXCLUDES:
+        if item.name in _BACKUP_EXCLUDES or item.name in backup_names:
             continue
-        if item.is_dir():
-            shutil.rmtree(item)
-        else:
-            item.unlink()
+        _remove_path(item)
     for item in backup_dir.iterdir():
         dest = cwd / item.name
-        if item.is_dir():
-            shutil.copytree(item, dest)
+        if item.is_symlink():
+            if dest.is_symlink() or dest.exists():
+                _remove_path(dest)
+            os.symlink(os.readlink(item), dest)
+        elif item.is_dir():
+            if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
+                _remove_path(dest)
+            dest.mkdir(exist_ok=True)
+            _restore_workspace(dest, item)
+            shutil.copystat(item, dest)
         else:
-            shutil.copy2(item, dest)
+            if dest.is_symlink() or dest.exists():
+                _remove_path(dest)  # unlink first so read-only files are replaceable
+            shutil.copy2(item, dest, follow_symlinks=False)
 
 
 def _diff_snapshot(cwd: Path) -> dict[str, int]:

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from pygate import __version__
 from pygate.api import evaluate
+from pygate.config import ConfigError
 from pygate.env import check_environment
 from pygate.fs import load_changed_files
 from pygate.models import RunMode
@@ -70,6 +71,14 @@ def main(argv: list[str] | None = None) -> None:
 
     cwd = Path.cwd()
 
+    try:
+        _dispatch(args, cwd)
+    except ConfigError as exc:
+        print(f"[pygate error] {exc}", file=sys.stderr)
+        sys.exit(2)
+
+
+def _dispatch(args: argparse.Namespace, cwd: Path) -> None:
     if args.command == "run":
         changed_files = ["."]
         if args.changed_files:
