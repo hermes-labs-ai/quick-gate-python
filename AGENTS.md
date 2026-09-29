@@ -1,5 +1,9 @@
 # AGENTS.md
 
+<!-- Instruction contract v1.0 — 2026-09-29 -->
+
+Priority order: preserve deterministic gate results and public CLI/API behavior; then keep repairs bounded; then minimize the diff. Treat each user request as an independent task and carry prior task state forward only when the user explicitly asks.
+
 PyGate is a deterministic Python CI gate that wraps Ruff, Pyright, and pytest and can escalate with structured evidence.
 
 ## Use it for
